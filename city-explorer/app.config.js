@@ -22,7 +22,11 @@ module.exports = {
           "ACCESS_BACKGROUND_LOCATION"
         ]
       },
-  
+      
+      extra:{
+        mapboxDownloadsToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
+      },
+
       plugins: [
         [
           "@rnmapbox/maps",
