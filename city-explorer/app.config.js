@@ -8,19 +8,13 @@ module.exports = {
         bundleIdentifier: "com.zezo.cityexplorer",
         infoPlist: {
           NSLocationWhenInUseUsageDescription:
-            "We use your location to unlock stations near you.",
-          NSLocationAlwaysAndWhenInUseUsageDescription:
-            "We use your location to unlock stations near you, even in the background."
+            "Novometro uses your location to check you in at the station you are standing at."
         }
       },
   
       android: {
         package: "com.zezo.cityexplorer",
-        permissions: [
-          "ACCESS_COARSE_LOCATION",
-          "ACCESS_FINE_LOCATION",
-          "ACCESS_BACKGROUND_LOCATION"
-        ]
+        permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
       },
       
       extra:{
@@ -37,7 +31,11 @@ module.exports = {
         ],
         [
           "expo-location",
-          { locationWhenInUsePermission: "We use your location to unlock stations near you." }
+          {
+            locationWhenInUsePermission:
+              "Novometro uses your location to check you in at the station you are standing at.",
+            isAndroidBackgroundLocationEnabled: false
+          }
         ]
       ]
     }
