@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import {
@@ -78,15 +79,26 @@ export default function ProfileScreen() {
 
 function AchievementRow({ row }: { row: Row }) {
   const { achievement, earned } = row;
-  return (
+  const inner = (
     <View style={[styles.row, !earned && styles.rowLocked]}>
       <Text style={styles.icon}>{achievementIcon(achievement.kind)}</Text>
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{achievement.name}</Text>
         <Text style={styles.desc}>{achievement.description}</Text>
       </View>
-      {earned && <Text style={styles.date}>{formatDate(earned.earned_at)}</Text>}
+      {earned && (
+        <View style={styles.rowRight}>
+          <Text style={styles.date}>{formatDate(earned.earned_at)}</Text>
+          <Text style={styles.shareHint}>Share ›</Text>
+        </View>
+      )}
     </View>
+  );
+  if (!earned) return inner;
+  return (
+    <Link href={{ pathname: '/share/[key]', params: { key: achievement.key } }} asChild>
+      <Pressable testID={`achievement-${achievement.key}`}>{inner}</Pressable>
+    </Link>
   );
 }
 
@@ -107,7 +119,9 @@ const styles = StyleSheet.create({
   icon: { fontSize: 26, width: 36, textAlign: 'center' },
   name: { fontSize: 16, fontWeight: '600' },
   desc: { color: '#6b7280', fontSize: 13, marginTop: 2 },
+  rowRight: { alignItems: 'flex-end', gap: 2 },
   date: { color: '#6b7280', fontSize: 12 },
+  shareHint: { color: '#16a34a', fontSize: 12, fontWeight: '600' },
   button: { marginHorizontal: 20, marginTop: 24, backgroundColor: '#111827', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: 'white', fontWeight: '600' },

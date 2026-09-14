@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fetchAchievementCatalogue } from '../api/achievements';
@@ -15,12 +16,13 @@ type Props = {
   onCheckedIn: (result: CheckInResult) => void;
 };
 
-type Notice = { kind: 'ok' | 'error'; text: string; detail?: string };
+type Notice = { kind: 'ok' | 'error'; text: string; detail?: string; shareKey?: string };
 
 export function CheckInBar({ nearest, fix, locationDenied, visitCount, onCheckedIn }: Props) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
+  const router = useRouter();
 
   const inRange = !!nearest && !!fix && nearest.distanceM <= unlockRadiusM(fix.accuracyM);
 
@@ -45,7 +47,8 @@ export function CheckInBar({ nearest, fix, locationDenied, visitCount, onChecked
         text: result.first_visit
           ? `${nearest.station.name} unlocked!`
           : `Visit #${result.station_visit_count} to ${nearest.station.name}`,
-        detail: names.length ? `🏆 ${names.join(' · ')}` : undefined,
+        detail: names.length ? `🏆 ${names.join(' · ')} · tap to share` : undefined,
+        shareKey: result.new_achievements[0],
       });
       onCheckedIn(result);
     } catch (e) {
@@ -66,10 +69,15 @@ export function CheckInBar({ nearest, fix, locationDenied, visitCount, onChecked
   return (
     <View style={styles.wrap} pointerEvents="box-none">
       {notice && (
-        <View style={[styles.notice, notice.kind === 'ok' ? styles.noticeOk : styles.noticeError]}>
+        <Pressable
+          style={[styles.notice, notice.kind === 'ok' ? styles.noticeOk : styles.noticeError]}
+          disabled={!notice.shareKey}
+          onPress={() => notice.shareKey && router.push({ pathname: '/share/[key]', params: { key: notice.shareKey } })}
+          testID="check-in-notice"
+        >
           <Text style={styles.noticeText}>{notice.text}</Text>
           {notice.detail && <Text style={styles.noticeDetail}>{notice.detail}</Text>}
-        </View>
+        </Pressable>
       )}
       <View style={styles.card}>
         <View style={{ flex: 1 }}>
