@@ -37,3 +37,13 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# env files (keep only *.example in git)
+.env
+.env.*
+!.env.example
+scripts/.env
+
+# supabase local
+supabase/.temp/
+supabase/.branches/

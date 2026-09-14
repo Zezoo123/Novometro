@@ -1,50 +1,106 @@
-# Welcome to your Expo app 👋
+# Novometro
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A gamified exploration app. Visit stations on a city's transit network to unlock
+them, complete lines for achievements, and compete with friends. London (Tube,
+DLR, Overground, Elizabeth line) is the first city.
 
-## Get started
+Stack: Expo (React Native), Mapbox, Supabase (Postgres + PostGIS).
 
-1. Install dependencies
+## How it works
 
-   ```bash
-   npm install
-   ```
+- Every visit is an append-only row in `visits`, written **only** by the
+  `check_in` database function after it verifies the reported location is
+  within range of the station, the accuracy is sane, the user has not already
+  checked in there in the last 30 minutes, and the implied travel speed since
+  their last visit is plausible.
+- Unlocks, visit counts, line progress, and achievements all derive from
+  `visits`. Achievements are evaluated in the database on every check-in.
+- The client never has write access to `visits` or `user_achievements`.
 
-2. Start the app
+The schema lives in `supabase/migrations`; the tests in `supabase/tests`.
 
-   ```bash
-   npx expo start
-   ```
+## Local setup
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Prerequisites: Node 22+, Docker Desktop, Xcode or Android Studio.
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env
+cp scripts/.env.example scripts/.env
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Start the local database (first run pulls Docker images):
 
-## Learn more
+```bash
+npm run db:start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Fill `.env` and `scripts/.env` using the URL and keys printed by
+`npx supabase status`. The app uses the anon/publishable key; the import
+script uses the service role key. Add your Mapbox tokens to `.env`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Apply migrations and seed, then import London:
 
-## Join the community
+```bash
+npm run db:reset
+npm run import:tfl
+```
 
-Join our community of developers creating universal apps.
+Run the database tests:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run db:test
+```
+
+Regenerate TypeScript types after changing a migration:
+
+```bash
+npm run db:types
+```
+
+## Running the app
+
+Mapbox needs a development build; Expo Go will not work.
+
+```bash
+npm run ios
+```
+
+## Scripts
+
+| Script            | What it does                                        |
+| ----------------- | --------------------------------------------------- |
+| `db:start`        | Start local Supabase in Docker                      |
+| `db:stop`         | Stop it                                             |
+| `db:reset`        | Recreate the database from migrations and seed      |
+| `db:test`         | Run pgTAP tests                                     |
+| `db:types`        | Generate `src/lib/database.types.ts`                |
+| `import:tfl`      | Import London lines, stations, and station ordering |
+
+## Environment
+
+`.env` holds only values that are safe to ship in the app binary. `scripts/.env`
+holds server-side keys and is never read by the app. Both are gitignored; the
+`.example` files are the reference.
+
+The Mapbox **secret** download token never goes in the repo or in `.env`. Put it
+in your user config once:
+
+```
+# ~/.gradle/gradle.properties
+MAPBOX_DOWNLOADS_TOKEN=sk....
+
+# ~/.netrc  (chmod 600)
+machine api.mapbox.com
+  login mapbox
+  password sk....
+```
+
+## Roadmap
+
+Work is tracked in GitHub issues, grouped into milestones:
+
+1. **Foundation**: schema, verified check-in, data import, cleanup
+2. **Core loop**: auth, map, real check-in, line progress
+3. **Social and growth**: achievements UI, shareable cards, friends, leaderboards
+4. **Launch**: anti-cheat hardening, builds, store listing
