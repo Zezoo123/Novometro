@@ -76,7 +76,11 @@ export default function MapScreen() {
         fix={fix}
         locationDenied={status !== null && !granted}
         visitCount={nearest ? visitMap.get(nearest.station.id)?.visits ?? 0 : 0}
-        onCheckedIn={() => queryClient.invalidateQueries({ queryKey: ['visits', userId] })}
+        onCheckedIn={() => {
+          queryClient.invalidateQueries({ queryKey: ['visits', userId] });
+          queryClient.invalidateQueries({ queryKey: ['line-progress', userId] });
+          queryClient.invalidateQueries({ queryKey: ['line-detail'] });
+        }}
       />
     </View>
   );
