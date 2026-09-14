@@ -17,17 +17,12 @@ module.exports = {
         permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
       },
       
-      extra:{
-        mapboxDownloadsToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
-      },
-
       plugins: [
         [
           "@rnmapbox/maps",
-          {
-            RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
-            RNMapboxMapsImpl: "mapbox"
-          }
+          // The secret download token is deliberately not configured here: it lives in
+          // ~/.gradle/gradle.properties (Android) and ~/.netrc (iOS) so it never enters git.
+          { RNMapboxMapsImpl: "mapbox" }
         ],
         [
           "expo-location",

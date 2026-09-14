@@ -79,10 +79,22 @@ npm run ios
 
 ## Environment
 
-`.env` holds only values that are safe to ship in the app binary plus the
-Mapbox download token used at build time. `scripts/.env` holds server-side
-keys and is never read by the app. Both are gitignored; the `.example` files
-are the reference.
+`.env` holds only values that are safe to ship in the app binary. `scripts/.env`
+holds server-side keys and is never read by the app. Both are gitignored; the
+`.example` files are the reference.
+
+The Mapbox **secret** download token never goes in the repo or in `.env`. Put it
+in your user config once:
+
+```
+# ~/.gradle/gradle.properties
+MAPBOX_DOWNLOADS_TOKEN=sk....
+
+# ~/.netrc  (chmod 600)
+machine api.mapbox.com
+  login mapbox
+  password sk....
+```
 
 ## Roadmap
 
