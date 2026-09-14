@@ -1,8 +1,9 @@
 // app.config.js (at project root)
 module.exports = {
     expo: {
-      name: "city-explorer",
+      name: "Novometro",
       slug: "city-explorer",
+      scheme: "novometro",
   
       ios: {
         bundleIdentifier: "com.zezo.cityexplorer",
@@ -18,6 +19,7 @@ module.exports = {
       },
       
       plugins: [
+        "expo-router",
         [
           "@rnmapbox/maps",
           // The secret download token is deliberately not configured here: it lives in
