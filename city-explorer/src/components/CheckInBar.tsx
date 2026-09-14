@@ -10,6 +10,8 @@ import { getFreshFix, type Fix } from '../hooks/useLocation';
 
 type Props = {
   nearest: { station: Station; distanceM: number } | null;
+  /** Closest station the user has not unlocked yet; drives the "next" nudge. */
+  nextUnvisited: { station: Station; distanceM: number } | null;
   fix: Fix | null;
   locationDenied: boolean;
   visitCount: number;
@@ -18,7 +20,7 @@ type Props = {
 
 type Notice = { kind: 'ok' | 'error'; text: string; detail?: string; shareKey?: string };
 
-export function CheckInBar({ nearest, fix, locationDenied, visitCount, onCheckedIn }: Props) {
+export function CheckInBar({ nearest, nextUnvisited, fix, locationDenied, visitCount, onCheckedIn }: Props) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
@@ -83,9 +85,14 @@ export function CheckInBar({ nearest, fix, locationDenied, visitCount, onChecked
         <View style={{ flex: 1 }}>
           <Text style={styles.label} numberOfLines={1}>{label}</Text>
           {nearest && fix && (
-            <Text style={styles.sub}>
+            <Text style={styles.sub} numberOfLines={1}>
               {visitCount > 0 ? `Visited ${visitCount}×` : 'Not yet unlocked'}
               {!inRange && ` · get within ${Math.round(unlockRadiusM(fix.accuracyM))} m`}
+            </Text>
+          )}
+          {nearest && fix && visitCount > 0 && nextUnvisited && nextUnvisited.station.id !== nearest.station.id && (
+            <Text style={styles.next} numberOfLines={1}>
+              Next unlock: {nextUnvisited.station.name} · {formatDistance(nextUnvisited.distanceM)}
             </Text>
           )}
         </View>
@@ -118,6 +125,7 @@ const styles = StyleSheet.create({
   },
   label: { color: 'white', fontWeight: '700', fontSize: 16 },
   sub: { color: '#9ca3af', fontSize: 13, marginTop: 2 },
+  next: { color: '#fbbf24', fontSize: 13, marginTop: 2, fontWeight: '600' },
   button: { backgroundColor: '#22c55e', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12, minWidth: 96, alignItems: 'center' },
   buttonDisabled: { backgroundColor: '#374151' },
   buttonText: { color: 'white', fontWeight: '700' },

@@ -37,15 +37,19 @@ export default function MapScreen() {
   );
   const stationById = useMemo(() => new Map((stations.data ?? []).map((s) => [s.id, s])), [stations.data]);
 
-  const nearest = useMemo(() => {
-    if (!fix || !stations.data?.length) return null;
+  // Nearest station overall (what you can check in at) and nearest one you
+  // have not unlocked yet (where to go next).
+  const { nearest, nextUnvisited } = useMemo(() => {
+    if (!fix || !stations.data?.length) return { nearest: null, nextUnvisited: null };
     let best: { station: Station; distanceM: number } | null = null;
+    let bestNew: { station: Station; distanceM: number } | null = null;
     for (const s of stations.data) {
       const d = haversine([fix.lon, fix.lat], [s.lon, s.lat]);
       if (!best || d < best.distanceM) best = { station: s, distanceM: d };
+      if (!visitMap.has(s.id) && (!bestNew || d < bestNew.distanceM)) bestNew = { station: s, distanceM: d };
     }
-    return best;
-  }, [fix, stations.data]);
+    return { nearest: best, nextUnvisited: bestNew };
+  }, [fix, stations.data, visitMap]);
 
   const flown = useRef(false);
   useEffect(() => {
@@ -117,6 +121,7 @@ export default function MapScreen() {
       ) : (
         <CheckInBar
           nearest={nearest}
+          nextUnvisited={nextUnvisited}
           fix={fix}
           locationDenied={status !== null && !granted}
           visitCount={nearest ? visitMap.get(nearest.station.id)?.visits ?? 0 : 0}
@@ -125,6 +130,9 @@ export default function MapScreen() {
             queryClient.invalidateQueries({ queryKey: ['line-progress', userId] });
             queryClient.invalidateQueries({ queryKey: ['line-detail'] });
             queryClient.invalidateQueries({ queryKey: ['achievements', userId] });
+            queryClient.invalidateQueries({ queryKey: ['my-stats', userId] });
+            queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+            queryClient.invalidateQueries({ queryKey: ['challenges', userId] });
           }}
         />
       )}
