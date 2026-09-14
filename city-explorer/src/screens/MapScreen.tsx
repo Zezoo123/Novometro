@@ -47,9 +47,10 @@ export default function MapScreen() {
         <MapboxGL.Camera zoomLevel={12} centerCoordinate={center} />
         {locGranted && <MapboxGL.UserLocation visible />}
 
-        {/* PointAnnotation per station is a native view each; replaced by a CircleLayer in #8. */}
+        {/* PointAnnotation per station is a native view each and does not repaint its child on
+            state change, hence the key. Replaced by a CircleLayer in #8. */}
         {stations.map((s) => (
-          <MapboxGL.PointAnnotation key={s.id} id={s.id} coordinate={[s.lon, s.lat]}>
+          <MapboxGL.PointAnnotation key={`${s.id}:${unlocked[s.id] ? 1 : 0}`} id={s.id} coordinate={[s.lon, s.lat]}>
             <View
               style={{
                 width: 16,

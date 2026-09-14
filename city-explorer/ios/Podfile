@@ -64,9 +64,28 @@ target 'cityexplorer' do
     )
 
     # 🔧 Disable User Script Sandboxing (fixes “Sandbox: bash deny file-read-data …”)
+    # fmt 11.0.2 (bundled with RN 0.79) fails to compile its consteval format
+    # strings under Xcode 26 / clang 21. fmt 11.0.2 also ignores a predefined
+    # FMT_USE_CONSTEVAL, so add the override guard that later fmt versions have,
+    # then define FMT_USE_CONSTEVAL=0 for every pod.
+    fmt_base = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
+    if File.exist?(fmt_base)
+      src = File.read(fmt_base)
+      needle = "#if !defined(__cpp_lib_is_constant_evaluated)\n#  define FMT_USE_CONSTEVAL 0"
+      if src.include?(needle) && !src.include?('#ifdef FMT_USE_CONSTEVAL')
+        src.sub!(needle, "#ifdef FMT_USE_CONSTEVAL\n// Use the provided definition.\n#elif !defined(__cpp_lib_is_constant_evaluated)\n#  define FMT_USE_CONSTEVAL 0")
+        File.chmod(0644, fmt_base) # CocoaPods makes pod sources read-only
+        File.write(fmt_base, src)
+        puts 'Patched fmt/base.h to honour FMT_USE_CONSTEVAL'
+      end
+    end
+
     installer.pods_project.targets.each do |t|
       t.build_configurations.each do |cfg|
         cfg.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        defs = cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+        defs = [defs] if defs.is_a?(String)
+        cfg.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = defs + ['FMT_USE_CONSTEVAL=0']
       end
     end
 
