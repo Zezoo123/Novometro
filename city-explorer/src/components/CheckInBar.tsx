@@ -1,6 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { fetchAchievementCatalogue } from '../api/achievements';
 import { CHECK_IN_COPY, CheckInError, checkIn, unlockRadiusM, type CheckInResult } from '../api/checkin';
 import type { Station } from '../api/stations';
 import { getFreshFix, type Fix } from '../hooks/useLocation';
@@ -13,11 +15,12 @@ type Props = {
   onCheckedIn: (result: CheckInResult) => void;
 };
 
-type Notice = { kind: 'ok' | 'error'; text: string };
+type Notice = { kind: 'ok' | 'error'; text: string; detail?: string };
 
 export function CheckInBar({ nearest, fix, locationDenied, visitCount, onCheckedIn }: Props) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
 
   const inRange = !!nearest && !!fix && nearest.distanceM <= unlockRadiusM(fix.accuracyM);
 
@@ -35,11 +38,14 @@ export function CheckInBar({ nearest, fix, locationDenied, visitCount, onChecked
         mocked: fresh.mocked,
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const names = result.new_achievements
+        .map((key) => catalogue.data?.find((a) => a.key === key)?.name ?? key);
       setNotice({
         kind: 'ok',
         text: result.first_visit
           ? `${nearest.station.name} unlocked!`
           : `Visit #${result.station_visit_count} to ${nearest.station.name}`,
+        detail: names.length ? `🏆 ${names.join(' · ')}` : undefined,
       });
       onCheckedIn(result);
     } catch (e) {
@@ -62,6 +68,7 @@ export function CheckInBar({ nearest, fix, locationDenied, visitCount, onChecked
       {notice && (
         <View style={[styles.notice, notice.kind === 'ok' ? styles.noticeOk : styles.noticeError]}>
           <Text style={styles.noticeText}>{notice.text}</Text>
+          {notice.detail && <Text style={styles.noticeDetail}>{notice.detail}</Text>}
         </View>
       )}
       <View style={styles.card}>
@@ -110,4 +117,5 @@ const styles = StyleSheet.create({
   noticeOk: { backgroundColor: '#16a34a' },
   noticeError: { backgroundColor: '#dc2626' },
   noticeText: { color: 'white', fontWeight: '600', textAlign: 'center' },
+  noticeDetail: { color: 'white', textAlign: 'center', marginTop: 4 },
 });

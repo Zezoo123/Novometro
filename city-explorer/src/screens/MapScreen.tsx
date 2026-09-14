@@ -124,6 +124,7 @@ export default function MapScreen() {
             queryClient.invalidateQueries({ queryKey: ['visits', userId] });
             queryClient.invalidateQueries({ queryKey: ['line-progress', userId] });
             queryClient.invalidateQueries({ queryKey: ['line-detail'] });
+            queryClient.invalidateQueries({ queryKey: ['achievements', userId] });
           }}
         />
       )}
