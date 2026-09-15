@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,6 +13,16 @@ import {
   View,
 } from 'react-native';
 import { signInWithEmail, verifyEmailCode } from '../src/api/profile';
+import {
+  appleSignInAvailable,
+  GOOGLE_IOS_CLIENT_ID,
+  GOOGLE_WEB_CLIENT_ID,
+  SignInCancelled,
+  signInWithApple,
+  signInWithGoogleIdToken,
+} from '../src/auth/providers';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Step = 'email' | 'code';
 
@@ -19,6 +32,24 @@ export default function SignInScreen() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    appleSignInAvailable().then(setAppleAvailable);
+  }, []);
+
+  const googleConfigured = !!GOOGLE_IOS_CLIENT_ID;
+
+  const apple = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithApple();
+    } catch (e) {
+      if (!(e instanceof SignInCancelled)) setError(e instanceof Error ? e.message : 'Apple sign-in failed.');
+      setBusy(false);
+    }
+  };
 
   const sendCode = async () => {
     setBusy(true);
@@ -53,6 +84,22 @@ export default function SignInScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Novometro</Text>
         <Text style={styles.subtitle}>Unlock every station. Complete every line.</Text>
+
+        {step === 'email' && (appleAvailable || googleConfigured) && (
+          <View style={styles.providers}>
+            {appleAvailable && (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                cornerRadius={12}
+                style={styles.appleButton}
+                onPress={apple}
+              />
+            )}
+            {googleConfigured && <GoogleButton busy={busy} setBusy={setBusy} setError={setError} />}
+            <Text style={styles.or}>or use your email</Text>
+          </View>
+        )}
 
         {step === 'email' ? (
           <>
@@ -115,12 +162,52 @@ export default function SignInScreen() {
   );
 }
 
+/**
+ * Lives in its own component because the Google hook throws at mount when no
+ * client id is configured; this only renders once one is.
+ */
+function GoogleButton({
+  busy,
+  setBusy,
+  setError,
+}: {
+  busy: boolean;
+  setBusy: (b: boolean) => void;
+  setError: (e: string | null) => void;
+}) {
+  const [, response, prompt] = Google.useIdTokenAuthRequest({
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success' && response.params.id_token) {
+      setBusy(true);
+      signInWithGoogleIdToken(response.params.id_token).catch((e) => {
+        setError(e instanceof Error ? e.message : 'Google sign-in failed.');
+        setBusy(false);
+      });
+    }
+  }, [response, setBusy, setError]);
+
+  return (
+    <Pressable style={styles.googleButton} onPress={() => prompt()} disabled={busy} testID="google-sign-in">
+      <Text style={styles.googleText}>Continue with Google</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#111827', justifyContent: 'center', padding: 24 },
   card: { gap: 12 },
   title: { color: 'white', fontSize: 40, fontWeight: '800' },
   subtitle: { color: '#d1d5db', fontSize: 16, marginBottom: 12 },
   hint: { color: '#d1d5db' },
+  providers: { gap: 10, marginBottom: 4 },
+  appleButton: { height: 48 },
+  googleButton: { backgroundColor: 'white', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  googleText: { color: '#111827', fontWeight: '700', fontSize: 16 },
+  or: { color: '#9ca3af', textAlign: 'center', marginTop: 6, fontSize: 13 },
   input: {
     backgroundColor: 'white',
     borderRadius: 12,

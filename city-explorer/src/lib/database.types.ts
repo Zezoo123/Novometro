@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -47,6 +42,7 @@ export type Database = {
           kind: string
           line_id: string | null
           name: string
+          points: number
           threshold: number | null
         }
         Insert: {
@@ -56,6 +52,7 @@ export type Database = {
           kind: string
           line_id?: string | null
           name: string
+          points?: number
           threshold?: number | null
         }
         Update: {
@@ -65,6 +62,7 @@ export type Database = {
           kind?: string
           line_id?: string | null
           name?: string
+          points?: number
           threshold?: number | null
         }
         Relationships: [
@@ -77,6 +75,70 @@ export type Database = {
           },
           {
             foreignKeyName: "achievements_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "my_line_progress"
+            referencedColumns: ["line_id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          city_id: string
+          description: string
+          ends_at: string
+          id: string
+          kind: string
+          line_id: string | null
+          points: number
+          starts_at: string
+          station_ids: string[] | null
+          target: number
+          title: string
+        }
+        Insert: {
+          city_id: string
+          description: string
+          ends_at: string
+          id?: string
+          kind: string
+          line_id?: string | null
+          points?: number
+          starts_at: string
+          station_ids?: string[] | null
+          target: number
+          title: string
+        }
+        Update: {
+          city_id?: string
+          description?: string
+          ends_at?: string
+          id?: string
+          kind?: string
+          line_id?: string | null
+          points?: number
+          starts_at?: string
+          station_ids?: string[] | null
+          target?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_line_id_fkey"
             columns: ["line_id"]
             isOneToOne: false
             referencedRelation: "my_line_progress"
@@ -113,6 +175,39 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string
+          followee_id: string
+          follower_id: string
+        }
+        Insert: {
+          created_at?: string
+          followee_id: string
+          follower_id: string
+        }
+        Update: {
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_followee_id_fkey"
+            columns: ["followee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       line_stations: {
         Row: {
@@ -168,6 +263,7 @@ export type Database = {
           id: string
           mode: string
           name: string
+          network: string
         }
         Insert: {
           city_id: string
@@ -179,6 +275,7 @@ export type Database = {
           id?: string
           mode: string
           name: string
+          network?: string
         }
         Update: {
           city_id?: string
@@ -190,6 +287,7 @@ export type Database = {
           id?: string
           mode?: string
           name?: string
+          network?: string
         }
         Relationships: [
           {
@@ -291,6 +389,7 @@ export type Database = {
           lon: number
           modes: string[]
           name: string
+          network: string
         }
         Insert: {
           city_id: string
@@ -304,6 +403,7 @@ export type Database = {
           lon: number
           modes?: string[]
           name: string
+          network?: string
         }
         Update: {
           city_id?: string
@@ -317,6 +417,7 @@ export type Database = {
           lon?: number
           modes?: string[]
           name?: string
+          network?: string
         }
         Relationships: [
           {
@@ -447,6 +548,7 @@ export type Database = {
           line_id: string | null
           mode: string | null
           name: string | null
+          network: string | null
           total_stations: number | null
           visited_stations: number | null
         }
@@ -512,14 +614,78 @@ export type Database = {
         Args: { p_station_id: string; p_user_id: string; p_visit_id: string }
         Returns: string[]
       }
+      leaderboard: {
+        Args: {
+          p_city_id: string
+          p_limit?: number
+          p_period?: string
+          p_scope?: string
+        }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          is_me: boolean
+          rank: number
+          score: number
+          user_id: string
+          username: string
+        }[]
+      }
+      level_for_xp: { Args: { p_xp: number }; Returns: number }
+      my_challenges: {
+        Args: { p_city_id: string }
+        Returns: {
+          completed: boolean
+          description: string
+          ends_at: string
+          id: string
+          kind: string
+          line_id: string
+          points: number
+          progress: number
+          starts_at: string
+          target: number
+          title: string
+        }[]
+      }
+      my_stats: {
+        Args: never
+        Returns: {
+          current_streak: number
+          level: number
+          longest_streak: number
+          stations: number
+          visits: number
+          xp: number
+          xp_for_next: number
+          xp_into_level: number
+        }[]
+      }
       nearest_stations: {
-        Args: { p_lat: number; p_limit?: number; p_lon: number }
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lon: number
+          p_network?: string
+        }
         Returns: {
           distance_m: number
           id: string
           lat: number
           lon: number
           name: string
+          network: string
+        }[]
+      }
+      search_profiles: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          follows_me: boolean
+          id: string
+          is_following: boolean
+          username: string
         }[]
       }
     }
@@ -657,3 +823,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

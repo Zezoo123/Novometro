@@ -24,6 +24,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="compete"
+        options={{
+          title: 'Compete',
+          tabBarIcon: ({ color, size }) => <Ionicons name="podium" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

@@ -4,9 +4,18 @@ module.exports = {
       name: "Novometro",
       slug: "city-explorer",
       scheme: "novometro",
+      icon: "./assets/images/icon.png",
+      splash: {
+        image: "./assets/images/splash-icon.png",
+        resizeMode: "contain",
+        backgroundColor: "#0f172a"
+      },
+      userInterfaceStyle: "light",
   
       ios: {
         bundleIdentifier: "com.zezo.cityexplorer",
+        // Sign in with Apple needs the capability on the App ID in the developer portal.
+        usesAppleSignIn: true,
         infoPlist: {
           NSLocationWhenInUseUsageDescription:
             "Novometro uses your location to check you in at the station you are standing at."
@@ -20,6 +29,11 @@ module.exports = {
       
       plugins: [
         "expo-router",
+        "expo-apple-authentication",
+        [
+          "expo-notifications",
+          { color: "#22c55e", defaultChannel: "reminders" }
+        ],
         [
           "@rnmapbox/maps",
           // The secret download token is deliberately not configured here: it lives in

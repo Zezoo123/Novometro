@@ -1,14 +1,29 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapboxGL from '@rnmapbox/maps';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { fetchMyProfile } from '../src/api/profile';
 import { SessionProvider, useSession } from '../src/auth/SessionProvider';
+import { supabase } from '../src/lib/supabase';
+import { WELCOME_SEEN_KEY } from './welcome';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN!);
 
-const queryClient = new QueryClient();
+/** A stored session the server no longer accepts (e.g. from another project) must not wedge the app. */
+function isAuthRejection(e: unknown): boolean {
+  const err = e as { code?: string; message?: string; status?: number } | null;
+  return !!err && (err.code === 'PGRST301' || err.status === 401 || /jwt|token/i.test(err.message ?? ''));
+}
+
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (isAuthRejection(error)) supabase.auth.signOut().catch(() => {});
+    },
+  }),
+});
 
 export default function RootLayout() {
   return (
@@ -22,6 +37,7 @@ export default function RootLayout() {
 
 /**
  * Routes:
+ *   first launch          -> /welcome
  *   signed out            -> /sign-in
  *   signed in, no username -> /onboarding
  *   signed in             -> /(tabs)
@@ -38,21 +54,33 @@ function AuthGate() {
     enabled: !!userId,
   });
 
-  const ready = !loading && (!userId || profile.isFetched);
+  // Re-read on every route change so finishing the welcome flow is picked up
+  // without a global store; it is a single small key.
+  const [welcomeSeen, setWelcomeSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (welcomeSeen) return;
+    AsyncStorage.getItem(WELCOME_SEEN_KEY)
+      .then((v) => setWelcomeSeen(!!v))
+      .catch(() => setWelcomeSeen(true));
+  }, [segments, welcomeSeen]);
+
+  const ready = !loading && welcomeSeen !== null && (!userId || profile.isFetched);
 
   useEffect(() => {
     if (!ready) return;
     const inAuth = segments[0] === 'sign-in';
+    const inWelcome = segments[0] === 'welcome';
     const inOnboarding = segments[0] === 'onboarding';
 
     if (!session) {
-      if (!inAuth) router.replace('/sign-in');
+      if (!welcomeSeen && !inWelcome) router.replace('/welcome');
+      else if (welcomeSeen && !inAuth && !inWelcome) router.replace('/sign-in');
     } else if (!profile.data?.username) {
       if (!inOnboarding) router.replace('/onboarding');
-    } else if (inAuth || inOnboarding) {
+    } else if (inAuth || inOnboarding || inWelcome) {
       router.replace('/(tabs)');
     }
-  }, [ready, session, profile.data?.username, segments, router]);
+  }, [ready, session, welcomeSeen, profile.data?.username, segments, router]);
 
   if (!ready) {
     return (
@@ -64,6 +92,7 @@ function AuthGate() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="welcome" />
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="(tabs)" />

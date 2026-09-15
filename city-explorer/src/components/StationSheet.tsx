@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { CheckInNotice } from '../hooks/useCheckIn';
 import type { Line, Station } from '../api/stations';
 import type { StationVisitCount } from '../api/visits';
 
@@ -7,10 +8,14 @@ type Props = {
   lines: Line[];
   visit: StationVisitCount | undefined;
   distanceM: number | null;
+  canCheckIn: boolean;
+  busy: boolean;
+  notice: CheckInNotice | null;
+  onCheckIn: () => void;
   onClose: () => void;
 };
 
-export function StationSheet({ station, lines, visit, distanceM, onClose }: Props) {
+export function StationSheet({ station, lines, visit, distanceM, canCheckIn, busy, notice, onCheckIn, onClose }: Props) {
   return (
     <View style={styles.sheet} testID="station-sheet">
       <View style={styles.handle} />
@@ -39,6 +44,23 @@ export function StationSheet({ station, lines, visit, distanceM, onClose }: Prop
           First visit {formatDate(visit.first_visited_at)} · last {formatDate(visit.last_visited_at)}
         </Text>
       )}
+      {notice && (
+        <View style={[styles.notice, notice.kind === 'ok' ? styles.noticeOk : styles.noticeError]}>
+          <Text style={styles.noticeText}>{notice.text}</Text>
+        </View>
+      )}
+      <Pressable
+        onPress={onCheckIn}
+        disabled={!canCheckIn || busy}
+        style={[styles.checkIn, (!canCheckIn || busy) && styles.checkInDisabled]}
+        testID="sheet-check-in"
+      >
+        {busy ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.checkInText}>{canCheckIn ? 'Check in here' : 'Get closer to check in'}</Text>
+        )}
+      </Pressable>
     </View>
   );
 }
@@ -91,4 +113,11 @@ const styles = StyleSheet.create({
   factAccent: { color: '#16a34a' },
   factLabel: { color: '#6b7280', fontSize: 12, marginTop: 2 },
   meta: { color: '#6b7280', fontSize: 13 },
+  notice: { borderRadius: 12, padding: 10 },
+  noticeOk: { backgroundColor: '#dcfce7' },
+  noticeError: { backgroundColor: '#fee2e2' },
+  noticeText: { color: '#111827', fontWeight: '600', textAlign: 'center' },
+  checkIn: { backgroundColor: '#22c55e', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  checkInDisabled: { backgroundColor: '#e5e7eb' },
+  checkInText: { color: 'white', fontWeight: '700', fontSize: 16 },
 });
