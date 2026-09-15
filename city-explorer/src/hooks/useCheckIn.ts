@@ -16,7 +16,7 @@ export type CheckInNotice = { kind: 'ok' | 'error'; text: string; detail?: strin
  */
 export function useCheckIn(userId: string | undefined) {
   const queryClient = useQueryClient();
-  const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
+  const catalogue = useQuery({ queryKey: ['achievement-catalogue', 'v2'], queryFn: fetchAchievementCatalogue });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<CheckInNotice | null>(null);
   const [celebrate, setCelebrate] = useState(false);

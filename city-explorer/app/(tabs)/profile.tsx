@@ -23,7 +23,7 @@ export default function ProfileScreen() {
   const [busy, setBusy] = useState(false);
 
   const profile = useQuery({ queryKey: ['profile', userId], queryFn: () => fetchMyProfile(userId!), enabled: !!userId });
-  const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
+  const catalogue = useQuery({ queryKey: ['achievement-catalogue', 'v2'], queryFn: fetchAchievementCatalogue });
   const earned = useQuery({ queryKey: ['achievements', userId], queryFn: fetchMyAchievements, enabled: !!userId });
   const photos = useQuery({ queryKey: ['my-photos', userId], queryFn: () => fetchMyPhotos(userId!), enabled: !!userId });
   useRefetchOnFocus([['achievements', userId], ['profile', userId], ['my-photos', userId]]);
@@ -31,7 +31,10 @@ export default function ProfileScreen() {
   const rows = useMemo<Row[]>(() => {
     const byKey = new Map<string, EarnedAchievement>();
     for (const e of earned.data ?? []) if (!byKey.has(e.achievement_key)) byKey.set(e.achievement_key, e);
-    const all = (catalogue.data ?? []).map((a) => ({ achievement: a, earned: byKey.get(a.key) ?? null }));
+    // Bus route completions (hundreds of them) only show once earned.
+    const all = (catalogue.data ?? [])
+      .map((a) => ({ achievement: a, earned: byKey.get(a.key) ?? null }))
+      .filter((r) => r.earned || r.achievement.network !== 'bus');
     // Earned first (newest at top), then locked in catalogue order.
     return all.sort((x, y) => {
       if (!!x.earned !== !!y.earned) return x.earned ? -1 : 1;

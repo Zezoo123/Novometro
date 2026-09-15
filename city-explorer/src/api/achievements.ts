@@ -1,6 +1,6 @@
 import { supabase, type Tables } from '../lib/supabase';
 
-export type Achievement = Tables<'achievements'>;
+export type Achievement = Tables<'achievements'> & { network: 'rail' | 'bus' | null };
 
 export type EarnedAchievement = {
   id: string;
@@ -13,9 +13,11 @@ export type EarnedAchievement = {
 const KIND_ORDER: Achievement['kind'][] = ['first_visit', 'station_regular', 'explorer', 'line_complete', 'all_lines'];
 
 export async function fetchAchievementCatalogue(): Promise<Achievement[]> {
-  const { data, error } = await supabase.from('achievements').select('*');
+  const { data, error } = await supabase.from('achievements').select('*, lines(network)');
   if (error) throw error;
-  return data.sort(
+  return data
+    .map(({ lines, ...a }) => ({ ...a, network: (lines?.network as Achievement['network']) ?? null }))
+    .sort(
     (a, b) =>
       KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
       (a.threshold ?? Number.MAX_SAFE_INTEGER) - (b.threshold ?? Number.MAX_SAFE_INTEGER) ||
