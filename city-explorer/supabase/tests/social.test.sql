@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(17);
 
 -- Own city and line so real data does not affect the assertions.
 insert into public.cities (id, slug, name, country_code, centre_lat, centre_lon)
@@ -9,10 +9,10 @@ values ('00000000-0000-0000-0000-00000000beef', 'testopolis', 'Testopolis', 'GB'
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, raw_user_meta_data, created_at, updated_at) values
   ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ana@example.com', '', '{}', now(), now()),
   ('10000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ben@example.com', '', '{}', now(), now()),
-  ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'cy@example.com',  '', '{}', now(), now());
+  ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'cyr@example.com',  '', '{}', now(), now());
 update public.profiles set username = 'ana' where id = '10000000-0000-0000-0000-00000000000a';
 update public.profiles set username = 'ben' where id = '10000000-0000-0000-0000-00000000000b';
-update public.profiles set username = 'cy'  where id = '10000000-0000-0000-0000-00000000000c';
+update public.profiles set username = 'cyr'  where id = '10000000-0000-0000-0000-00000000000c';
 
 insert into public.lines (id, city_id, external_source, external_id, name, mode, colour)
 values ('20000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000beef', 'test', 'loop', 'Loop line', 'tube', '#000000');
@@ -66,7 +66,7 @@ select is((select is_following from public.search_profiles('ben')), true, 'searc
 
 select results_eq(
   $$ select rank, username, score, is_me from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all') $$,
-  $$ values (1, 'ana'::text, 2, true), (2, 'ben'::text, 1, false), (3, 'cy'::text, 0, false) $$,
+  $$ values (1, 'ana'::text, 2, true), (2, 'ben'::text, 1, false), (3, 'cyr'::text, 0, false) $$,
   'city all-time leaderboard ranks by distinct stations');
 
 select results_eq(

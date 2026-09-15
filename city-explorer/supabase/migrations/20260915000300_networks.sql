@@ -157,7 +157,9 @@ end;
 $$;
 
 -- Line progress carries the network so the app can group and filter.
-create or replace view public.my_line_progress
+-- (drop first: a replaced view cannot gain a column in the middle)
+drop view if exists public.my_line_progress;
+create view public.my_line_progress
 with (security_invoker = true) as
 select
   l.id      as line_id,

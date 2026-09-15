@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(9);
+select plan(10);
 
 insert into public.cities (id, slug, name, country_code, centre_lat, centre_lon)
 values ('00000000-0000-0000-0000-0000000000bb', 'busville', 'Busville', 'GB', 51.5, -0.14);

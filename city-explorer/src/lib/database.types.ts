@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -141,6 +136,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lines"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenges_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "my_line_progress"
+            referencedColumns: ["line_id"]
           },
         ]
       }
@@ -613,7 +615,12 @@ export type Database = {
         Returns: string[]
       }
       leaderboard: {
-        Args: { p_city_id: string; p_limit?: number; p_period?: string; p_scope?: string }
+        Args: {
+          p_city_id: string
+          p_limit?: number
+          p_period?: string
+          p_scope?: string
+        }
         Returns: {
           avatar_url: string
           display_name: string
@@ -624,10 +631,7 @@ export type Database = {
           username: string
         }[]
       }
-      level_for_xp: {
-        Args: { p_xp: number }
-        Returns: number
-      }
+      level_for_xp: { Args: { p_xp: number }; Returns: number }
       my_challenges: {
         Args: { p_city_id: string }
         Returns: {
@@ -645,7 +649,7 @@ export type Database = {
         }[]
       }
       my_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           current_streak: number
           level: number
@@ -657,6 +661,22 @@ export type Database = {
           xp_into_level: number
         }[]
       }
+      nearest_stations: {
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lon: number
+          p_network?: string
+        }
+        Returns: {
+          distance_m: number
+          id: string
+          lat: number
+          lon: number
+          name: string
+          network: string
+        }[]
+      }
       search_profiles: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -666,16 +686,6 @@ export type Database = {
           id: string
           is_following: boolean
           username: string
-        }[]
-      }
-      nearest_stations: {
-        Args: { p_lat: number; p_limit?: number; p_lon: number }
-        Returns: {
-          distance_m: number
-          id: string
-          lat: number
-          lon: number
-          name: string
         }[]
       }
     }
@@ -813,3 +823,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
