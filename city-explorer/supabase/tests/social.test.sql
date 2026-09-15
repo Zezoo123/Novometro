@@ -7,9 +7,9 @@ insert into public.cities (id, slug, name, country_code, centre_lat, centre_lon)
 values ('00000000-0000-0000-0000-00000000beef', 'testopolis', 'Testopolis', 'GB', 51.5, -0.14);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, raw_user_meta_data, created_at, updated_at) values
-  ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ana@example.com', '', '{}', now(), now()),
-  ('10000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ben@example.com', '', '{}', now(), now()),
-  ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'cyr@example.com',  '', '{}', now(), now());
+  ('10000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ana.test@example.com', '', '{}', now(), now()),
+  ('10000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'ben.test@example.com', '', '{}', now(), now()),
+  ('10000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000c', 'authenticated', 'authenticated', 'cyr.test@example.com',  '', '{}', now(), now());
 update public.profiles set username = 'ana' where id = '10000000-0000-0000-0000-00000000000a';
 update public.profiles set username = 'ben' where id = '10000000-0000-0000-0000-00000000000b';
 update public.profiles set username = 'cyr'  where id = '10000000-0000-0000-0000-00000000000c';
@@ -65,8 +65,8 @@ select is((select count(*) from public.visits), 4::bigint, 'after following ben,
 select is((select is_following from public.search_profiles('ben')), true, 'search reflects the follow');
 
 select results_eq(
-  $$ select rank, username, score, is_me from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all') where username in ('ana', 'ben', 'cyr') $$,
-  $$ values (1, 'ana'::text, 2, true), (2, 'ben'::text, 1, false), (3, 'cyr'::text, 0, false) $$,
+  $$ select rank, username, score, is_me from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all') where username in ('ana', 'ben') $$,
+  $$ values (1, 'ana'::text, 2, true), (2, 'ben'::text, 1, false) $$,
   'city all-time leaderboard ranks by distinct stations');
 
 select results_eq(

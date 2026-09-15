@@ -1,4 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { fetchStationWall, photoUrl } from '../api/photos';
 import type { CheckInNotice } from '../hooks/useCheckIn';
 import type { Line, Station } from '../api/stations';
 import type { StationVisitCount } from '../api/visits';
@@ -16,6 +19,7 @@ type Props = {
 };
 
 export function StationSheet({ station, lines, visit, distanceM, canCheckIn, busy, notice, onCheckIn, onClose }: Props) {
+  const wall = useQuery({ queryKey: ['station-wall', station.id], queryFn: () => fetchStationWall(station.id, 12), staleTime: 60_000 });
   return (
     <View style={styles.sheet} testID="station-sheet">
       <View style={styles.handle} />
@@ -39,6 +43,18 @@ export function StationSheet({ station, lines, visit, distanceM, canCheckIn, bus
         <Fact label="Your visits" value={String(visit?.visits ?? 0)} />
         <Fact label="Distance" value={distanceM == null ? '—' : formatDistance(distanceM)} />
       </View>
+      {wall.data && wall.data.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.wall}>
+          {wall.data.map((w) => (
+            <View key={w.visit_id} style={styles.wallItem}>
+              <Image source={{ uri: photoUrl(w.photo_path, 240) }} style={styles.wallPhoto} contentFit="cover" transition={150} />
+              <Text style={styles.wallName} numberOfLines={1}>@{w.username}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <Text style={styles.wallEmpty}>No photos here yet. Be the first.</Text>
+      )}
       {visit && (
         <Text style={styles.meta}>
           First visit {formatDate(visit.first_visited_at)} · last {formatDate(visit.last_visited_at)}
@@ -113,6 +129,11 @@ const styles = StyleSheet.create({
   factAccent: { color: '#16a34a' },
   factLabel: { color: '#6b7280', fontSize: 12, marginTop: 2 },
   meta: { color: '#6b7280', fontSize: 13 },
+  wall: { gap: 8 },
+  wallItem: { width: 88 },
+  wallPhoto: { width: 88, height: 88, borderRadius: 10, backgroundColor: '#e5e7eb' },
+  wallName: { fontSize: 11, color: '#6b7280', marginTop: 4 },
+  wallEmpty: { color: '#9ca3af', fontSize: 13, fontStyle: 'italic' },
   notice: { borderRadius: 12, padding: 10 },
   noticeOk: { backgroundColor: '#dcfce7' },
   noticeError: { backgroundColor: '#fee2e2' },

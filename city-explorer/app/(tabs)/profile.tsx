@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { fetchMyPhotos, photoUrl } from '../../src/api/photos';
 import {
   achievementIcon,
   fetchAchievementCatalogue,
@@ -23,7 +25,8 @@ export default function ProfileScreen() {
   const profile = useQuery({ queryKey: ['profile', userId], queryFn: () => fetchMyProfile(userId!), enabled: !!userId });
   const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
   const earned = useQuery({ queryKey: ['achievements', userId], queryFn: fetchMyAchievements, enabled: !!userId });
-  useRefetchOnFocus([['achievements', userId], ['profile', userId]]);
+  const photos = useQuery({ queryKey: ['my-photos', userId], queryFn: () => fetchMyPhotos(userId!), enabled: !!userId });
+  useRefetchOnFocus([['achievements', userId], ['profile', userId], ['my-photos', userId]]);
 
   const rows = useMemo<Row[]>(() => {
     const byKey = new Map<string, EarnedAchievement>();
@@ -60,6 +63,21 @@ export default function ProfileScreen() {
           <Text style={styles.username}>@{profile.data?.username ?? '…'}</Text>
           <Text style={styles.email}>{session?.user.email}</Text>
           <Text style={styles.sectionTitle}>
+            Photos <Text style={styles.sectionCount}>{photos.data?.length ?? 0}</Text>
+          </Text>
+          {photos.data && photos.data.length > 0 ? (
+            <View style={styles.grid}>
+              {photos.data.map((ph) => (
+                <View key={ph.id} style={styles.gridItem}>
+                  <Image source={{ uri: photoUrl(ph.photo_path, 400) }} style={styles.gridPhoto} contentFit="cover" transition={150} />
+                  <Text style={styles.gridLabel} numberOfLines={1}>{ph.station_name}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.gridEmpty}>Your station photos will show up here.</Text>
+          )}
+          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
             Achievements <Text style={styles.sectionCount}>{earnedCount} / {rows.length}</Text>
           </Text>
         </View>
@@ -115,6 +133,11 @@ const styles = StyleSheet.create({
   username: { fontSize: 28, fontWeight: '800' },
   email: { color: '#6b7280', marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  gridItem: { width: (Dimensions.get('window').width - 40 - 12) / 3 },
+  gridPhoto: { width: '100%', aspectRatio: 1, borderRadius: 10, backgroundColor: '#e5e7eb' },
+  gridLabel: { fontSize: 11, color: '#6b7280', marginTop: 3 },
+  gridEmpty: { color: '#9ca3af', fontSize: 13, fontStyle: 'italic', marginTop: 4 },
   sectionCount: { color: '#6b7280', fontWeight: '500' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
   rowLocked: { opacity: 0.45 },
