@@ -5,9 +5,13 @@ import { supabase } from '../lib/supabase';
 const BUCKET = 'checkins';
 const MAX_EDGE = 1440;
 
-/** Public URL for a stored photo path, optionally resized by the image CDN. */
-export function photoUrl(path: string, width?: number): string {
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path, width ? { transform: { width, resize: 'cover' } } : undefined);
+/**
+ * Public URL for a stored photo. Uploads are already capped at 1440px, so no
+ * server-side resizing (a paid Supabase feature) is needed; the width hint is
+ * kept so callers can switch to CDN transforms later without changing call sites.
+ */
+export function photoUrl(path: string, _width?: number): string {
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
 
