@@ -5,6 +5,7 @@ import { fetchMyLineProgress, summarise, type LineProgress } from '../../src/api
 import { fetchMyStats } from '../../src/api/social';
 import { fetchMyStationVisits } from '../../src/api/visits';
 import { useSession } from '../../src/auth/SessionProvider';
+import { useRefetchOnFocus } from '../../src/hooks/useRefetchOnFocus';
 
 export default function ProgressScreen() {
   const { session } = useSession();
@@ -13,6 +14,7 @@ export default function ProgressScreen() {
   const lines = useQuery({ queryKey: ['line-progress', userId], queryFn: fetchMyLineProgress, enabled: !!userId });
   const visits = useQuery({ queryKey: ['visits', userId], queryFn: fetchMyStationVisits, enabled: !!userId });
   const me = useQuery({ queryKey: ['my-stats', userId], queryFn: fetchMyStats, enabled: !!userId });
+  useRefetchOnFocus([['line-progress', userId], ['visits', userId], ['my-stats', userId]]);
 
   const stats = summarise(lines.data ?? [], visits.data ?? []);
   const refreshing = lines.isRefetching || visits.isRefetching;

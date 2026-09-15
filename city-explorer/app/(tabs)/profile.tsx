@@ -11,6 +11,7 @@ import {
 } from '../../src/api/achievements';
 import { fetchMyProfile, signOut } from '../../src/api/profile';
 import { useSession } from '../../src/auth/SessionProvider';
+import { useRefetchOnFocus } from '../../src/hooks/useRefetchOnFocus';
 
 type Row = { achievement: Achievement; earned: EarnedAchievement | null };
 
@@ -22,6 +23,7 @@ export default function ProfileScreen() {
   const profile = useQuery({ queryKey: ['profile', userId], queryFn: () => fetchMyProfile(userId!), enabled: !!userId });
   const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
   const earned = useQuery({ queryKey: ['achievements', userId], queryFn: fetchMyAchievements, enabled: !!userId });
+  useRefetchOnFocus([['achievements', userId], ['profile', userId]]);
 
   const rows = useMemo<Row[]>(() => {
     const byKey = new Map<string, EarnedAchievement>();

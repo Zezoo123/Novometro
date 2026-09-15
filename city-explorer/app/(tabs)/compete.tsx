@@ -11,12 +11,14 @@ import {
   type LeaderboardScope,
 } from '../../src/api/social';
 import { useSession } from '../../src/auth/SessionProvider';
+import { useRefetchOnFocus } from '../../src/hooks/useRefetchOnFocus';
 
 export default function CompeteScreen() {
   const { session } = useSession();
   const userId = session?.user.id;
   const [scope, setScope] = useState<LeaderboardScope>('friends');
   const [period, setPeriod] = useState<LeaderboardPeriod>('week');
+  useRefetchOnFocus([['leaderboard'], ['challenges', userId]]);
 
   const board = useQuery({
     queryKey: ['leaderboard', scope, period, userId],
