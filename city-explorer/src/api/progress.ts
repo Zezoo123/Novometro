@@ -56,7 +56,7 @@ export type LineStationRow = {
 };
 
 /** Ordered stations on a line with the signed-in user's visit counts. */
-export async function fetchLineDetail(lineId: string): Promise<LineStationRow[]> {
+export async function fetchLineDetail(lineId: string, userId: string): Promise<LineStationRow[]> {
   const [{ data: rows, error }, { data: counts, error: countErr }] = await Promise.all([
     supabase
       .from('line_stations')
@@ -64,7 +64,7 @@ export async function fetchLineDetail(lineId: string): Promise<LineStationRow[]>
       .eq('line_id', lineId)
       .order('branch')
       .order('sequence'),
-    supabase.from('station_visit_counts').select('station_id,visits'),
+    supabase.from('station_visit_counts').select('station_id,visits').eq('user_id', userId),
   ]);
   if (error) throw error;
   if (countErr) throw countErr;

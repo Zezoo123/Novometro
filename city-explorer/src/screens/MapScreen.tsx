@@ -40,7 +40,7 @@ export default function MapScreen() {
   const lines = useQuery({ queryKey: ['lines', 'london', 'rail'], queryFn: () => fetchLines('rail'), staleTime: 3_600_000 });
   // Bus routes are small rows (no geometry) and tell us whether the Bus chip is available at all.
   const busLines = useQuery({ queryKey: ['lines', 'london', 'bus'], queryFn: () => fetchLines('bus'), staleTime: 3_600_000 });
-  const visits = useQuery({ queryKey: ['visits', userId], queryFn: fetchMyStationVisits, enabled: !!userId });
+  const visits = useQuery({ queryKey: ['visits', userId], queryFn: () => fetchMyStationVisits(userId!), enabled: !!userId });
 
   const visitMap = useMemo(() => toVisitMap(visits.data ?? []), [visits.data]);
 

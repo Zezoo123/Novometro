@@ -18,7 +18,7 @@ export default function LineDetailScreen() {
 
   const detail = useQuery({
     queryKey: ['line-detail', id, userId],
-    queryFn: () => fetchLineDetail(id!),
+    queryFn: () => fetchLineDetail(id!, userId!),
     enabled: !!id && !!userId,
   });
   const allStations = useQuery({ queryKey: ['stations', 'london', 'rail'], queryFn: () => fetchStations('rail'), staleTime: 3_600_000 });

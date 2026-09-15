@@ -12,7 +12,7 @@ export default function ProgressScreen() {
   const userId = session?.user.id;
 
   const lines = useQuery({ queryKey: ['line-progress', userId], queryFn: fetchMyLineProgress, enabled: !!userId });
-  const visits = useQuery({ queryKey: ['visits', userId], queryFn: fetchMyStationVisits, enabled: !!userId });
+  const visits = useQuery({ queryKey: ['visits', userId], queryFn: () => fetchMyStationVisits(userId!), enabled: !!userId });
   const me = useQuery({ queryKey: ['my-stats', userId], queryFn: fetchMyStats, enabled: !!userId });
   useRefetchOnFocus([['line-progress', userId], ['visits', userId], ['my-stats', userId]]);
 
