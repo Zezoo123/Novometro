@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { forwardRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { Achievement } from '../api/achievements';
@@ -10,6 +11,8 @@ export type ShareCardProps = {
   colour: string;
   /** e.g. "16 stations" for a line, "469 stations" for the city. */
   detail?: string;
+  /** Up to nine photo URLs from the line, shown as a strip under the title. */
+  photos?: string[];
 };
 
 export const CARD_WIDTH = 360;
@@ -20,7 +23,7 @@ export const CARD_HEIGHT = 360;
  * regardless of the phone. Keep it self-contained: no network images.
  */
 export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard(
-  { achievement, username, earnedAt, colour, detail },
+  { achievement, username, earnedAt, colour, detail, photos = [] },
   ref,
 ) {
   const date = new Date(earnedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
@@ -32,9 +35,16 @@ export const ShareCard = forwardRef<View, ShareCardProps>(function ShareCard(
         <Text style={styles.title} numberOfLines={3} adjustsFontSizeToFit>
           {achievement.name}
         </Text>
-        <Text style={styles.description}>{achievement.description}</Text>
+        {photos.length === 0 && <Text style={styles.description}>{achievement.description}</Text>}
         {detail && <Text style={styles.detail}>{detail}</Text>}
       </View>
+      {photos.length > 0 && (
+        <View style={styles.collage}>
+          {photos.slice(0, 9).map((uri, i) => (
+            <Image key={i} source={{ uri }} style={[styles.tile, photos.length <= 3 && styles.tileLarge]} contentFit="cover" />
+          ))}
+        </View>
+      )}
       <View style={styles.footer}>
         <View>
           <Text style={styles.handle}>@{username}</Text>
@@ -89,6 +99,9 @@ const styles = StyleSheet.create({
   title: { color: 'white', fontSize: 40, fontWeight: '900', lineHeight: 44 },
   description: { color: 'rgba(255,255,255,0.85)', fontSize: 16, marginTop: 4 },
   detail: { color: 'rgba(255,255,255,0.9)', fontSize: 18, fontWeight: '600' },
+  collage: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 8 },
+  tile: { width: 62, height: 62, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)' },
+  tileLarge: { width: 96, height: 96, borderRadius: 14 },
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   handle: { color: 'white', fontWeight: '800', fontSize: 16 },
   date: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },

@@ -96,6 +96,7 @@ function AuthGate() {
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="celebrate/[key]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
     </Stack>
   );
 }

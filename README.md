@@ -44,6 +44,7 @@ The whole thing is verified server-side. A check-in is only accepted if the phon
 **Progression**
 - Streaks, XP and levels computed on the server.
 - Achievements: first visit, station regular (10 / 50 / 100 visits), explorer (25 / 100 / every station), every line, and one per line completion. Each earned one has a shareable card.
+- Completing a line opens a full-screen celebration in the line's colour with your photos from that line on the card, and the share button right there.
 - Confetti on first unlocks, and a daily streak reminder you're asked about after your first check-in, never at launch.
 
 **Anti-cheat, layer one**
@@ -72,6 +73,7 @@ Every rule lives in SQL under [`city-explorer/supabase/migrations`](city-explore
 | **Profile** | Your photo grid, achievements with share cards, sign out. |
 
 <p align="center">
+  <a href="docs/screenshots/celebrate.png"><img src="docs/screenshots/celebrate.png" width="180" alt="Line complete" /></a>
   <a href="docs/screenshots/share.png"><img src="docs/screenshots/share.png" width="180" alt="Share card" /></a>
   <a href="docs/screenshots/signin.png"><img src="docs/screenshots/signin.png" width="180" alt="Sign in" /></a>
 </p>
@@ -167,7 +169,7 @@ docs/screenshots/
 
 ## Roadmap
 
-Tracked in [issues](https://github.com/Zezoo123/Novometro/issues). Next up: a full-screen celebration with the share card when you complete a line, an Android build for testers, device attestation (App Attest / Play Integrity), then store listing.
+Tracked in [issues](https://github.com/Zezoo123/Novometro/issues). Next up: an Android build for testers, device attestation (App Attest / Play Integrity), then store listing.
 
 ## Data and credits
 
