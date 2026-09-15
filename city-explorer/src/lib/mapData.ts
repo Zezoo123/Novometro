@@ -1,7 +1,7 @@
 import type { Feature, FeatureCollection, MultiLineString, Point } from 'geojson';
 import type { Line, LineStation, Station } from '../api/stations';
 
-export type StationProps = { id: string; name: string; unlocked: boolean; visits: number };
+export type StationProps = { id: string; name: string; unlocked: boolean; visits: number; network: string };
 export type LineProps = { id: string; name: string; colour: string };
 
 const FALLBACK_COLOUR = '#6b7280';
@@ -16,7 +16,7 @@ export function stationsToGeoJSON(
       type: 'Feature',
       id: s.id,
       geometry: { type: 'Point', coordinates: [s.lon, s.lat] },
-      properties: { id: s.id, name: s.name, unlocked: visits.has(s.id), visits: visits.get(s.id)?.visits ?? 0 },
+      properties: { id: s.id, name: s.name, unlocked: visits.has(s.id), visits: visits.get(s.id)?.visits ?? 0, network: s.network },
     })),
   };
 }

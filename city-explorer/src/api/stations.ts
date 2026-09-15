@@ -2,14 +2,14 @@ import { supabase, type Tables } from '../lib/supabase';
 
 export const LONDON_CITY_ID = '00000000-0000-0000-0000-000000000001';
 
-export type Station = Pick<Tables<'stations'>, 'id' | 'name' | 'lat' | 'lon' | 'modes' | 'hub_id'>;
-export type Line = Pick<Tables<'lines'>, 'id' | 'name' | 'mode' | 'colour' | 'geometry'>;
+export type Station = Pick<Tables<'stations'>, 'id' | 'name' | 'lat' | 'lon' | 'modes' | 'hub_id' | 'network'>;
+export type Line = Pick<Tables<'lines'>, 'id' | 'name' | 'mode' | 'colour' | 'geometry' | 'network'>;
 export type LineStation = Pick<Tables<'line_stations'>, 'line_id' | 'station_id' | 'branch' | 'sequence'>;
 
 export async function fetchStations(cityId = LONDON_CITY_ID): Promise<Station[]> {
   const { data, error } = await supabase
     .from('stations')
-    .select('id,name,lat,lon,modes,hub_id')
+    .select('id,name,lat,lon,modes,hub_id,network')
     .eq('city_id', cityId)
     .order('name');
   if (error) throw error;
@@ -19,7 +19,7 @@ export async function fetchStations(cityId = LONDON_CITY_ID): Promise<Station[]>
 export async function fetchLines(cityId = LONDON_CITY_ID): Promise<Line[]> {
   const { data, error } = await supabase
     .from('lines')
-    .select('id,name,mode,colour,geometry')
+    .select('id,name,mode,colour,geometry,network')
     .eq('city_id', cityId)
     .order('name');
   if (error) throw error;

@@ -13,7 +13,9 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
-    "import:tfl": "node --env-file=scripts/.env --import=tsx scripts/import_tfl.ts"
+    "import:tfl": "node --env-file=scripts/.env --import=tsx scripts/import_tfl.ts",
+    "import:tfl:bus": "node --env-file=scripts/.env --import=tsx scripts/import_tfl_bus.ts",
+    "db:push:hosted": "node --env-file=scripts/.env --import=tsx scripts/apply_hosted_migrations.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -42,7 +44,8 @@
     "expo-router": "~5.1.11",
     "@react-native-async-storage/async-storage": "2.1.2",
     "react-native-view-shot": "4.0.3",
-    "expo-sharing": "~13.1.5"
+    "expo-sharing": "~13.1.5",
+    "expo-notifications": "~0.31.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

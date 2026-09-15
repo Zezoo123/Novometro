@@ -261,6 +261,7 @@ export type Database = {
           id: string
           mode: string
           name: string
+          network: string
         }
         Insert: {
           city_id: string
@@ -272,6 +273,7 @@ export type Database = {
           id?: string
           mode: string
           name: string
+          network?: string
         }
         Update: {
           city_id?: string
@@ -283,6 +285,7 @@ export type Database = {
           id?: string
           mode?: string
           name?: string
+          network?: string
         }
         Relationships: [
           {
@@ -384,6 +387,7 @@ export type Database = {
           lon: number
           modes: string[]
           name: string
+          network: string
         }
         Insert: {
           city_id: string
@@ -397,6 +401,7 @@ export type Database = {
           lon: number
           modes?: string[]
           name: string
+          network?: string
         }
         Update: {
           city_id?: string
@@ -410,6 +415,7 @@ export type Database = {
           lon?: number
           modes?: string[]
           name?: string
+          network?: string
         }
         Relationships: [
           {
@@ -540,6 +546,7 @@ export type Database = {
           line_id: string | null
           mode: string | null
           name: string | null
+          network: string | null
           total_stations: number | null
           visited_stations: number | null
         }

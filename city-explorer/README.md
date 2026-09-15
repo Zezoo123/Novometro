@@ -6,6 +6,18 @@ DLR, Overground, Elizabeth line) is the first city.
 
 Stack: Expo (React Native), Mapbox, Supabase (Postgres + PostGIS).
 
+## What's in the app
+
+- Sign in with an emailed code; pick a username.
+- Map with every Tube, DLR, Overground and Elizabeth line station, drawn in
+  line colours, with Tube / DLR / Overground / Elizabeth / Bus filter chips.
+- Check in when you are within 150 m of a station. Unlocks, visit counts,
+  streaks, XP and levels all come from the server-side visit log.
+- Progress: per-line completion bars and an ordered station rail per line.
+- Compete: weekly challenge, friends and London leaderboards (this week /
+  all time), find friends by username.
+- Profile: achievements with shareable cards.
+
 ## How it works
 
 - Every visit is an append-only row in `visits`, written **only** by the
@@ -75,7 +87,8 @@ npm run ios
 | `db:reset`        | Recreate the database from migrations and seed      |
 | `db:test`         | Run pgTAP tests                                     |
 | `db:types`        | Generate `src/lib/database.types.ts`                |
-| `import:tfl`      | Import London lines, stations, and station ordering |
+| `import:tfl`      | Import London rail lines, stations, and ordering    |
+| `import:tfl:bus`  | Import London bus routes and stops (bus network)    |
 
 ## Environment
 

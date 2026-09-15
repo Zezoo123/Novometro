@@ -1,12 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { fetchAchievementCatalogue } from '../api/achievements';
-import { CHECK_IN_COPY, CheckInError, checkIn, unlockRadiusM, type CheckInResult } from '../api/checkin';
+import { unlockRadiusM } from '../api/checkin';
 import type { Station } from '../api/stations';
-import { getFreshFix, type Fix } from '../hooks/useLocation';
+import type { CheckInNotice } from '../hooks/useCheckIn';
+import type { Fix } from '../hooks/useLocation';
 
 type Props = {
   nearest: { station: Station; distanceM: number } | null;
@@ -15,52 +12,14 @@ type Props = {
   fix: Fix | null;
   locationDenied: boolean;
   visitCount: number;
-  onCheckedIn: (result: CheckInResult) => void;
+  busy: boolean;
+  notice: CheckInNotice | null;
+  onSubmit: (station: Station) => void;
 };
 
-type Notice = { kind: 'ok' | 'error'; text: string; detail?: string; shareKey?: string };
-
-export function CheckInBar({ nearest, nextUnvisited, fix, locationDenied, visitCount, onCheckedIn }: Props) {
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<Notice | null>(null);
-  const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
+export function CheckInBar({ nearest, nextUnvisited, fix, locationDenied, visitCount, busy, notice, onSubmit }: Props) {
   const router = useRouter();
-
   const inRange = !!nearest && !!fix && nearest.distanceM <= unlockRadiusM(fix.accuracyM);
-
-  const submit = async () => {
-    if (!nearest) return;
-    setBusy(true);
-    setNotice(null);
-    try {
-      const fresh = await getFreshFix();
-      const result = await checkIn({
-        stationId: nearest.station.id,
-        lat: fresh.lat,
-        lon: fresh.lon,
-        accuracyM: fresh.accuracyM,
-        mocked: fresh.mocked,
-      });
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const names = result.new_achievements
-        .map((key) => catalogue.data?.find((a) => a.key === key)?.name ?? key);
-      setNotice({
-        kind: 'ok',
-        text: result.first_visit
-          ? `${nearest.station.name} unlocked!`
-          : `Visit #${result.station_visit_count} to ${nearest.station.name}`,
-        detail: names.length ? `🏆 ${names.join(' · ')} · tap to share` : undefined,
-        shareKey: result.new_achievements[0],
-      });
-      onCheckedIn(result);
-    } catch (e) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const reason = e instanceof CheckInError ? e.reason : 'unknown';
-      setNotice({ kind: 'error', text: CHECK_IN_COPY[reason] });
-    } finally {
-      setBusy(false);
-    }
-  };
 
   let label: string;
   if (locationDenied) label = 'Location permission is needed to check in';
@@ -92,12 +51,12 @@ export function CheckInBar({ nearest, nextUnvisited, fix, locationDenied, visitC
           )}
           {nearest && fix && visitCount > 0 && nextUnvisited && nextUnvisited.station.id !== nearest.station.id && (
             <Text style={styles.next} numberOfLines={1}>
-              Next unlock: {nextUnvisited.station.name} · {formatDistance(nextUnvisited.distanceM)}
+              Next: {nextUnvisited.station.name} · {formatDistance(nextUnvisited.distanceM)}
             </Text>
           )}
         </View>
         <Pressable
-          onPress={submit}
+          onPress={() => nearest && onSubmit(nearest.station)}
           disabled={!inRange || busy}
           style={[styles.button, (!inRange || busy) && styles.buttonDisabled]}
           testID="check-in"
@@ -109,20 +68,13 @@ export function CheckInBar({ nearest, nextUnvisited, fix, locationDenied, visitC
   );
 }
 
-function formatDistance(m: number): string {
+export function formatDistance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 16, right: 16, bottom: 16, gap: 8 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#111827',
-    borderRadius: 16,
-    padding: 14,
-  },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#111827', borderRadius: 16, padding: 14 },
   label: { color: 'white', fontWeight: '700', fontSize: 16 },
   sub: { color: '#9ca3af', fontSize: 13, marginTop: 2 },
   next: { color: '#fbbf24', fontSize: 13, marginTop: 2, fontWeight: '600' },

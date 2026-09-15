@@ -26,7 +26,7 @@ export default function ProgressScreen() {
     <FlatList
       style={styles.screen}
       contentContainerStyle={styles.content}
-      data={lines.data ?? []}
+      data={(lines.data ?? []).filter((l) => l.network !== 'bus' || l.visited_stations > 0)}
       keyExtractor={(l) => l.line_id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       ListHeaderComponent={
@@ -68,6 +68,13 @@ export default function ProgressScreen() {
         <Text style={styles.empty}>{lines.isLoading ? 'Loading…' : 'No lines yet.'}</Text>
       }
       renderItem={({ item }) => <LineRow line={item} />}
+      ListFooterComponent={
+        (lines.data ?? []).some((l) => l.network === 'bus') ? (
+          <Text style={styles.footer}>
+            Bus routes appear here once you check in at a stop on them.
+          </Text>
+        ) : null
+      }
     />
   );
 }
@@ -126,6 +133,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 24, fontWeight: '800' },
   statLabel: { color: '#6b7280', fontSize: 12, marginTop: 2 },
   empty: { color: '#6b7280', textAlign: 'center', marginTop: 40 },
+  footer: { color: '#9ca3af', fontSize: 12, textAlign: 'center', padding: 20 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
   swatch: { width: 8, height: 40, borderRadius: 4 },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },

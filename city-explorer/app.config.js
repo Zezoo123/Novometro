@@ -4,6 +4,13 @@ module.exports = {
       name: "Novometro",
       slug: "city-explorer",
       scheme: "novometro",
+      icon: "./assets/images/icon.png",
+      splash: {
+        image: "./assets/images/splash-icon.png",
+        resizeMode: "contain",
+        backgroundColor: "#0f172a"
+      },
+      userInterfaceStyle: "light",
   
       ios: {
         bundleIdentifier: "com.zezo.cityexplorer",
@@ -20,6 +27,10 @@ module.exports = {
       
       plugins: [
         "expo-router",
+        [
+          "expo-notifications",
+          { color: "#22c55e", defaultChannel: "reminders" }
+        ],
         [
           "@rnmapbox/maps",
           // The secret download token is deliberately not configured here: it lives in

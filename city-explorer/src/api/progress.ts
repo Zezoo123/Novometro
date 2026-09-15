@@ -4,6 +4,7 @@ export type LineProgress = {
   line_id: string;
   name: string;
   mode: string;
+  network: string;
   colour: string | null;
   total_stations: number;
   visited_stations: number;
@@ -13,7 +14,7 @@ export type LineProgress = {
 export async function fetchMyLineProgress(): Promise<LineProgress[]> {
   const { data, error } = await supabase
     .from('my_line_progress')
-    .select('line_id,name,mode,colour,total_stations,visited_stations');
+    .select('line_id,name,mode,network,colour,total_stations,visited_stations');
   if (error) throw error;
   return (data ?? [])
     .filter(
@@ -21,9 +22,11 @@ export async function fetchMyLineProgress(): Promise<LineProgress[]> {
         r.line_id != null && r.name != null && r.mode != null && r.total_stations != null && r.visited_stations != null,
     )
     .sort((a, b) => {
+      // Rail first; within a network most complete first; untouched bus routes sink to the bottom.
+      if (a.network !== b.network) return a.network === 'rail' ? -1 : 1;
       const pa = a.visited_stations / a.total_stations;
       const pb = b.visited_stations / b.total_stations;
-      return pb - pa || a.name.localeCompare(b.name);
+      return pb - pa || a.name.localeCompare(b.name, undefined, { numeric: true });
     });
 }
 
