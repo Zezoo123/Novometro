@@ -1,5 +1,6 @@
 import MapboxGL from '@rnmapbox/maps';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { unlockRadiusM } from '../api/checkin';
@@ -26,6 +27,15 @@ export default function MapScreen() {
   const userId = session?.user.id;
   const { fix, status, granted } = useLocation();
   const check = useCheckIn(userId);
+  const router = useRouter();
+  useEffect(() => {
+    if (!check.milestoneKey) return;
+    const key = check.milestoneKey;
+    check.clearMilestone();
+    setPending(null);
+    router.push({ pathname: '/celebrate/[key]', params: { key } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [check.milestoneKey]);
   const camera = useRef<MapboxGL.Camera>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState<Station | null>(null);

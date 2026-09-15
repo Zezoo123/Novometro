@@ -20,6 +20,8 @@ export function useCheckIn(userId: string | undefined) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<CheckInNotice | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  /** Achievement worth a full-screen moment (line / city / network), set once per check-in. */
+  const [milestoneKey, setMilestoneKey] = useState<string | null>(null);
 
   const submit = useCallback(
     async (station: Station, photo?: { uri: string; caption?: string }): Promise<CheckInResult | null> => {
@@ -59,6 +61,8 @@ export function useCheckIn(userId: string | undefined) {
           shareKey: result.new_achievements[0],
         });
         if (result.first_visit || result.new_achievements.length) setCelebrate(true);
+        const milestone = result.new_achievements.find((k) => k.startsWith('line_complete:') || k === 'all_lines' || k === 'explorer:city');
+        if (milestone) setMilestoneKey(milestone);
 
         const stats = queryClient.getQueryData<{ current_streak: number }>(['my-stats', userId]);
         ensureStreakReminder((stats?.current_streak ?? 0) + 1);
@@ -79,5 +83,14 @@ export function useCheckIn(userId: string | undefined) {
     [catalogue.data, queryClient, userId],
   );
 
-  return { submit, busy, notice, clearNotice: () => setNotice(null), celebrate, endCelebration: () => setCelebrate(false) };
+  return {
+    submit,
+    busy,
+    notice,
+    clearNotice: () => setNotice(null),
+    celebrate,
+    endCelebration: () => setCelebrate(false),
+    milestoneKey,
+    clearMilestone: () => setMilestoneKey(null),
+  };
 }
