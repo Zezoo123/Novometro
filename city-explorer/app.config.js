@@ -14,6 +14,8 @@ module.exports = {
   
       ios: {
         bundleIdentifier: "com.zezo.cityexplorer",
+        // Sign in with Apple needs the capability on the App ID in the developer portal.
+        usesAppleSignIn: true,
         infoPlist: {
           NSLocationWhenInUseUsageDescription:
             "Novometro uses your location to check you in at the station you are standing at."
@@ -27,6 +29,7 @@ module.exports = {
       
       plugins: [
         "expo-router",
+        "expo-apple-authentication",
         [
           "expo-notifications",
           { color: "#22c55e", defaultChannel: "reminders" }
