@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useState } from 'react';
 import { fetchAchievementCatalogue } from '../api/achievements';
 import { CHECK_IN_COPY, CheckInError, checkIn, type CheckInResult } from '../api/checkin';
+import { deleteCheckInPhoto, uploadCheckInPhoto } from '../api/photos';
 import type { Station } from '../api/stations';
 import { ensureStreakReminder } from '../lib/reminders';
 import { getFreshFix } from './useLocation';
@@ -15,24 +16,40 @@ export type CheckInNotice = { kind: 'ok' | 'error'; text: string; detail?: strin
  */
 export function useCheckIn(userId: string | undefined) {
   const queryClient = useQueryClient();
-  const catalogue = useQuery({ queryKey: ['achievement-catalogue'], queryFn: fetchAchievementCatalogue });
+  const catalogue = useQuery({ queryKey: ['achievement-catalogue', 'v2'], queryFn: fetchAchievementCatalogue });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<CheckInNotice | null>(null);
   const [celebrate, setCelebrate] = useState(false);
 
   const submit = useCallback(
-    async (station: Station): Promise<CheckInResult | null> => {
+    async (station: Station, photo?: { uri: string; caption?: string }): Promise<CheckInResult | null> => {
       setBusy(true);
       setNotice(null);
+      let photoPath: string | null = null;
       try {
         const fresh = await getFreshFix();
-        const result = await checkIn({
-          stationId: station.id,
-          lat: fresh.lat,
-          lon: fresh.lon,
-          accuracyM: fresh.accuracyM,
-          mocked: fresh.mocked,
-        });
+        if (photo && userId) {
+          try {
+            photoPath = await uploadCheckInPhoto(userId, photo.uri);
+          } catch {
+            throw new CheckInError('photo_upload_failed');
+          }
+        }
+        let result: CheckInResult;
+        try {
+          result = await checkIn({
+            stationId: station.id,
+            lat: fresh.lat,
+            lon: fresh.lon,
+            accuracyM: fresh.accuracyM,
+            mocked: fresh.mocked,
+            photoPath,
+            caption: photo?.caption ?? null,
+          });
+        } catch (e) {
+          if (photoPath) deleteCheckInPhoto(photoPath).catch(() => {});
+          throw e;
+        }
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         const names = result.new_achievements.map((key) => catalogue.data?.find((a) => a.key === key)?.name ?? key);
         setNotice({
@@ -46,7 +63,7 @@ export function useCheckIn(userId: string | undefined) {
         const stats = queryClient.getQueryData<{ current_streak: number }>(['my-stats', userId]);
         ensureStreakReminder((stats?.current_streak ?? 0) + 1);
 
-        for (const key of [['visits', userId], ['line-progress', userId], ['line-detail'], ['achievements', userId], ['my-stats', userId], ['leaderboard'], ['challenges', userId]]) {
+        for (const key of [['visits', userId], ['line-progress', userId], ['line-detail'], ['achievements', userId], ['my-stats', userId], ['leaderboard'], ['challenges', userId], ['feed'], ['station-wall', station.id], ['my-photos', userId]]) {
           queryClient.invalidateQueries({ queryKey: key });
         }
         return result;

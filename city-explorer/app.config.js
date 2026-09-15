@@ -29,6 +29,13 @@ module.exports = {
       
       plugins: [
         "expo-router",
+        [
+          "expo-image-picker",
+          {
+            cameraPermission: "Novometro uses the camera so you can snap a photo at the station you check in at.",
+            photosPermission: "Novometro can attach a photo from your library to a check-in."
+          }
+        ],
         "expo-apple-authentication",
         [
           "expo-notifications",

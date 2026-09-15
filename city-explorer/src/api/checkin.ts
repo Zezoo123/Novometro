@@ -12,6 +12,8 @@ export type CheckInFailure =
   | 'too_far'
   | 'rate_limited'
   | 'implausible_speed'
+  | 'photo_not_owned'
+  | 'photo_upload_failed'
   | 'unknown';
 
 export type CheckInResult = {
@@ -31,7 +33,7 @@ export class CheckInError extends Error {
 
 const KNOWN: CheckInFailure[] = [
   'not_authenticated', 'location_mocked', 'location_inaccurate', 'station_not_found',
-  'too_far', 'rate_limited', 'implausible_speed',
+  'too_far', 'rate_limited', 'implausible_speed', 'photo_not_owned',
 ];
 
 export async function checkIn(input: {
@@ -40,6 +42,8 @@ export async function checkIn(input: {
   lon: number;
   accuracyM: number;
   mocked?: boolean;
+  photoPath?: string | null;
+  caption?: string | null;
 }): Promise<CheckInResult> {
   const { data, error } = await supabase.rpc('check_in', {
     p_station_id: input.stationId,
@@ -47,6 +51,8 @@ export async function checkIn(input: {
     p_lon: input.lon,
     p_accuracy_m: input.accuracyM,
     p_mocked: input.mocked ?? false,
+    p_photo_path: input.photoPath ?? undefined,
+    p_caption: input.caption ?? undefined,
   });
   if (error) {
     const reason = KNOWN.find((k) => error.message === k) ?? 'unknown';
@@ -64,6 +70,8 @@ export const CHECK_IN_COPY: Record<CheckInFailure, string> = {
   too_far: 'You are not close enough to this station yet.',
   rate_limited: 'You already checked in here recently. Come back in a bit.',
   implausible_speed: 'That was fast. Wait a moment before checking in again.',
+  photo_not_owned: 'That photo could not be attached. Try again.',
+  photo_upload_failed: 'The photo did not upload. Check your connection and try again.',
   unknown: 'Something went wrong. Please try again.',
 };
 

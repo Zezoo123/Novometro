@@ -337,6 +337,84 @@ export type Database = {
           },
         ]
       }
+      reactions: {
+        Row: {
+          created_at: string
+          kind: string
+          user_id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind?: string
+          user_id: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          user_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          reason: string
+          reporter_id: string
+          visit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          reason: string
+          reporter_id: string
+          visit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          reason?: string
+          reporter_id?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       share_events: {
         Row: {
           achievement_key: string | null
@@ -488,11 +566,14 @@ export type Database = {
       visits: {
         Row: {
           accuracy_m: number
+          caption: string | null
           distance_m: number
           flags: string[]
+          hidden: boolean
           id: string
           lat: number
           lon: number
+          photo_path: string | null
           source: string
           station_id: string
           user_id: string
@@ -500,11 +581,14 @@ export type Database = {
         }
         Insert: {
           accuracy_m: number
+          caption?: string | null
           distance_m: number
           flags?: string[]
+          hidden?: boolean
           id?: string
           lat: number
           lon: number
+          photo_path?: string | null
           source?: string
           station_id: string
           user_id: string
@@ -512,11 +596,14 @@ export type Database = {
         }
         Update: {
           accuracy_m?: number
+          caption?: string | null
           distance_m?: number
           flags?: string[]
+          hidden?: boolean
           id?: string
           lat?: number
           lon?: number
+          photo_path?: string | null
           source?: string
           station_id?: string
           user_id?: string
@@ -592,9 +679,11 @@ export type Database = {
       check_in: {
         Args: {
           p_accuracy_m: number
+          p_caption?: string
           p_lat: number
           p_lon: number
           p_mocked?: boolean
+          p_photo_path?: string
           p_station_id: string
         }
         Returns: Json
@@ -613,6 +702,24 @@ export type Database = {
       evaluate_achievements: {
         Args: { p_station_id: string; p_user_id: string; p_visit_id: string }
         Returns: string[]
+      }
+      feed: {
+        Args: { p_before?: string; p_limit?: number }
+        Returns: {
+          caption: string
+          is_me: boolean
+          line_colours: string[]
+          my_reaction: string
+          photo_path: string
+          reaction_count: number
+          station_id: string
+          station_name: string
+          user_id: string
+          username: string
+          visit_id: string
+          visit_number: number
+          visited_at: string
+        }[]
       }
       leaderboard: {
         Args: {
@@ -677,6 +784,7 @@ export type Database = {
           network: string
         }[]
       }
+      rotate_weekly_challenges: { Args: never; Returns: number }
       search_profiles: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -686,6 +794,17 @@ export type Database = {
           id: string
           is_following: boolean
           username: string
+        }[]
+      }
+      station_wall: {
+        Args: { p_limit?: number; p_station_id: string }
+        Returns: {
+          caption: string
+          photo_path: string
+          user_id: string
+          username: string
+          visit_id: string
+          visited_at: string
         }[]
       }
     }

@@ -7,6 +7,7 @@ import { fetchLines, fetchStationLines, fetchStations, type Station } from '../a
 import { fetchMyStationVisits, toVisitMap } from '../api/visits';
 import { useSession } from '../auth/SessionProvider';
 import { CheckInBar } from '../components/CheckInBar';
+import { CheckInSheet } from '../components/CheckInSheet';
 import { Confetti } from '../components/Confetti';
 import { ModeFilter } from '../components/ModeFilter';
 import { StationSheet } from '../components/StationSheet';
@@ -27,6 +28,7 @@ export default function MapScreen() {
   const check = useCheckIn(userId);
   const camera = useRef<MapboxGL.Camera>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pending, setPending] = useState<Station | null>(null);
   const { modes, toggle } = useMapModes();
 
   const busOn = (modes as string[]).includes('bus');
@@ -172,7 +174,7 @@ export default function MapScreen() {
           canCheckIn={!!fix && selectedDistance != null && selectedDistance <= unlockRadiusM(fix.accuracyM)}
           busy={check.busy}
           notice={check.notice}
-          onCheckIn={() => check.submit(selected)}
+          onCheckIn={() => setPending(selected)}
           onClose={() => {
             setSelectedId(null);
             check.clearNotice();
@@ -187,7 +189,18 @@ export default function MapScreen() {
           visitCount={nearest ? visitMap.get(nearest.station.id)?.visits ?? 0 : 0}
           busy={check.busy}
           notice={check.notice}
-          onSubmit={check.submit}
+          onSubmit={(station) => setPending(station)}
+        />
+      )}
+      {pending && (
+        <CheckInSheet
+          station={pending}
+          busy={check.busy}
+          onCancel={() => setPending(null)}
+          onSubmit={async (photo) => {
+            const result = await check.submit(pending, photo);
+            if (result) setPending(null);
+          }}
         />
       )}
     </View>
