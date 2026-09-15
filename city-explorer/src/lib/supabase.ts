@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
@@ -8,9 +9,16 @@ if (!url || !anonKey) {
   throw new Error('EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON must be set (see .env.example)');
 }
 
-// Session persistence is wired up with expo-secure-store in the auth work (#7).
+// Sessions persist in AsyncStorage, which is what Supabase documents for React
+// Native. Moving the refresh token into encrypted storage is a small follow-up
+// (see issue #7).
 export const supabase = createClient<Database>(url, anonKey, {
-  auth: { persistSession: false },
+  auth: {
+    storage: AsyncStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+  },
 });
 
 export type Tables<T extends keyof Database['public']['Tables']> =

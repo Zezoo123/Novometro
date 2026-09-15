@@ -1,89 +1,95 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
 import MapboxGL from '@rnmapbox/maps';
-import * as Location from 'expo-location';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { fetchStations, type Station } from '../api/stations';
+import { fetchMyStationVisits, toVisitMap } from '../api/visits';
+import { useSession } from '../auth/SessionProvider';
+import { CheckInBar } from '../components/CheckInBar';
+import { useLocation } from '../hooks/useLocation';
 import { haversine } from '../lib/geo';
 
 const LONDON_CENTRE: [number, number] = [-0.1276, 51.5072];
 
 export default function MapScreen() {
-  const [locStatus, setLocStatus] = useState<Location.PermissionStatus | null>(null);
-  // Local-only until the verified check-in flow lands (#9). Nothing here is persisted.
-  const [unlocked, setUnlocked] = useState<Record<string, boolean>>({});
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  const { fix, status, granted } = useLocation();
+  const camera = useRef<MapboxGL.Camera>(null);
 
-  const { data: stations = [], isLoading, error } = useQuery({
-    queryKey: ['stations', 'london'],
-    queryFn: () => fetchStations(),
+  const stations = useQuery({ queryKey: ['stations', 'london'], queryFn: () => fetchStations() });
+  const visits = useQuery({
+    queryKey: ['visits', userId],
+    queryFn: fetchMyStationVisits,
+    enabled: !!userId,
   });
+  const visitMap = useMemo(() => toVisitMap(visits.data ?? []), [visits.data]);
 
-  useEffect(() => {
-    Location.requestForegroundPermissionsAsync().then(({ status }) => setLocStatus(status));
-  }, []);
-
-  const center = useMemo(() => LONDON_CENTRE, []);
-
-  const mockUnlockNearest = async () => {
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const here: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-    let nearest: Station | null = null;
-    let best = Infinity;
-    for (const s of stations) {
-      const d = haversine(here, [s.lon, s.lat]);
-      if (d < best) {
-        best = d;
-        nearest = s;
-      }
+  const nearest = useMemo(() => {
+    if (!fix || !stations.data?.length) return null;
+    let best: { station: Station; distanceM: number } | null = null;
+    for (const s of stations.data) {
+      const d = haversine([fix.lon, fix.lat], [s.lon, s.lat]);
+      if (!best || d < best.distanceM) best = { station: s, distanceM: d };
     }
-    if (nearest) setUnlocked((u) => ({ ...u, [nearest.id]: true }));
-  };
+    return best;
+  }, [fix, stations.data]);
 
-  const locGranted = locStatus === 'granted';
+  // Fly to the user once we have a first fix.
+  const flown = useRef(false);
+  useEffect(() => {
+    if (fix && !flown.current) {
+      flown.current = true;
+      camera.current?.setCamera({ centerCoordinate: [fix.lon, fix.lat], zoomLevel: 14, animationDuration: 800 });
+    }
+  }, [fix]);
+
+  const error = stations.error ?? visits.error;
 
   return (
     <View style={{ flex: 1 }}>
-      <MapboxGL.MapView style={{ flex: 1 }}>
-        <MapboxGL.Camera zoomLevel={12} centerCoordinate={center} />
-        {locGranted && <MapboxGL.UserLocation visible />}
+      <MapboxGL.MapView style={{ flex: 1 }} scaleBarEnabled={false}>
+        <MapboxGL.Camera ref={camera} defaultSettings={{ centerCoordinate: LONDON_CENTRE, zoomLevel: 12 }} />
+        {granted && <MapboxGL.UserLocation visible />}
 
         {/* PointAnnotation per station is a native view each and does not repaint its child on
             state change, hence the key. Replaced by a CircleLayer in #8. */}
-        {stations.map((s) => (
-          <MapboxGL.PointAnnotation key={`${s.id}:${unlocked[s.id] ? 1 : 0}`} id={s.id} coordinate={[s.lon, s.lat]}>
-            <View
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 8,
-                borderWidth: 2,
-                borderColor: 'white',
-                backgroundColor: unlocked[s.id] ? '#22c55e' : '#3b82f6',
-              }}
-            />
-          </MapboxGL.PointAnnotation>
-        ))}
+        {(stations.data ?? []).map((s) => {
+          const unlocked = visitMap.has(s.id);
+          return (
+            <MapboxGL.PointAnnotation key={`${s.id}:${unlocked ? 1 : 0}`} id={s.id} coordinate={[s.lon, s.lat]}>
+              <View style={[styles.marker, unlocked ? styles.markerUnlocked : styles.markerLocked]} />
+            </MapboxGL.PointAnnotation>
+          );
+        })}
       </MapboxGL.MapView>
 
-      <View style={{ position: 'absolute', bottom: 24, left: 0, right: 0, alignItems: 'center' }}>
-        <Pressable
-          onPress={mockUnlockNearest}
-          disabled={!locGranted || stations.length === 0}
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            backgroundColor: locGranted ? '#111827' : '#9ca3af',
-            borderRadius: 12,
-          }}
-        >
-          <Text style={{ color: 'white', fontWeight: '600' }}>Mock unlock nearest (local only)</Text>
-        </Pressable>
-        {locStatus && locStatus !== 'granted' && (
-          <Text style={{ marginTop: 8 }}>Location permission is needed to check in.</Text>
-        )}
-        {isLoading && <Text style={{ marginTop: 8 }}>Loading stations…</Text>}
-        {error && <Text style={{ marginTop: 8, color: 'red' }}>{String(error)}</Text>}
-      </View>
+      {error && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{String(error)}</Text>
+        </View>
+      )}
+
+      <CheckInBar
+        nearest={nearest}
+        fix={fix}
+        locationDenied={status !== null && !granted}
+        visitCount={nearest ? visitMap.get(nearest.station.id)?.visits ?? 0 : 0}
+        onCheckedIn={() => {
+          queryClient.invalidateQueries({ queryKey: ['visits', userId] });
+          queryClient.invalidateQueries({ queryKey: ['line-progress', userId] });
+          queryClient.invalidateQueries({ queryKey: ['line-detail'] });
+        }}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  marker: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: 'white' },
+  markerLocked: { backgroundColor: '#3b82f6' },
+  markerUnlocked: { backgroundColor: '#22c55e' },
+  errorBanner: { position: 'absolute', top: 60, left: 16, right: 16, backgroundColor: '#dc2626', borderRadius: 12, padding: 10 },
+  errorText: { color: 'white' },
+});
