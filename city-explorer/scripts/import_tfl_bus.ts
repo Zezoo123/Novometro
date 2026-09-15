@@ -8,7 +8,7 @@
 // Idempotent: routes and stops upsert on their TfL ids; line_stations are
 // replaced per route. Requires migration 20260915000300_networks.
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = need('SUPABASE_URL');
 const SUPABASE_SERVICE_KEY = need('SUPABASE_SERVICE_KEY');
@@ -121,8 +121,13 @@ async function run() {
     if (done % 25 === 0 || done === routes.length) console.log(`  ${done}/${routes.length} routes fetched`);
   });
 
-  console.log(`Upserting ${stops.size} bus stops…`);
-  const stopRows = [...stops.values()].map((s) => ({
+  // Never overwrite an existing station row (a bus stop can share a NaPTAN id
+  // with a rail station); those stops simply link to the existing row.
+  const existing = await fetchAllStations(db, SOURCE);
+  const existingIds = new Set(existing.map((s) => s.external_id));
+
+  console.log(`Upserting ${stops.size} bus stops (${[...stops.keys()].filter((k) => existingIds.has(k)).length} already exist)…`);
+  const stopRows = [...stops.values()].filter((s) => !existingIds.has(s.external_id)).map((s) => ({
     city_id: LONDON_ID,
     external_source: SOURCE,
     external_id: s.external_id,
@@ -158,14 +163,8 @@ async function run() {
     .select('id, external_id');
   if (lineErr) throw lineErr;
 
-  const { data: stations, error: stErr } = await db
-    .from('stations')
-    .select('id, external_id')
-    .eq('external_source', SOURCE)
-    .eq('network', 'bus')
-    .limit(50000);
-  if (stErr) throw stErr;
-  const stationIdByExt = new Map(stations!.map((s) => [s.external_id, s.id]));
+  const stations = await fetchAllStations(db, SOURCE);
+  const stationIdByExt = new Map(stations.map((s) => [s.external_id, s.id]));
 
   console.log('Writing line_stations…');
   for (const seq of sequences) {
@@ -182,6 +181,24 @@ async function run() {
   }
 
   console.log('Done.');
+}
+
+
+/** PostgREST caps responses at 1000 rows; page through everything. */
+async function fetchAllStations(db: SupabaseClient, source: string) {
+  const out: { id: string; external_id: string; network: string }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db
+      .from('stations')
+      .select('id, external_id, network')
+      .eq('external_source', source)
+      .order('external_id')
+      .range(from, from + 999);
+    if (error) throw error;
+    out.push(...(data as typeof out));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
 }
 
 run().catch((e) => {

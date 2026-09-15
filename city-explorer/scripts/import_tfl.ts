@@ -6,7 +6,7 @@
 // Idempotent: lines and stations upsert on their TfL ids; line_stations are
 // replaced per line.
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = need('SUPABASE_URL');
 const SUPABASE_SERVICE_KEY = need('SUPABASE_SERVICE_KEY');
@@ -74,7 +74,7 @@ async function run() {
 
   const stationRows = new Map<string, {
     city_id: string; external_source: string; external_id: string; name: string;
-    lat: number; lon: number; modes: string[]; hub_id: string | null;
+    lat: number; lon: number; modes: string[]; network: 'rail'; hub_id: string | null;
   }>();
   const sequences: { lineId: string; stops: { external_id: string; branch: number; sequence: number }[]; geometry: unknown }[] = [];
 
@@ -102,6 +102,7 @@ async function run() {
           lat: sp.lat,
           lon: sp.lon,
           modes: [...modes].filter((m) => MODES.includes(m)).sort(),
+          network: 'rail',
           hub_id: sp.topMostParentId?.startsWith('HUB') ? sp.topMostParentId : existing?.hub_id ?? null,
         });
       });
@@ -134,10 +135,8 @@ async function run() {
     .select('id, external_id');
   if (lineErr) throw lineErr;
 
-  const { data: stations, error: stErr } = await db.from('stations')
-    .select('id, external_id').eq('external_source', SOURCE);
-  if (stErr) throw stErr;
-  const stationIdByExt = new Map(stations!.map((s) => [s.external_id, s.id]));
+  const stations = await fetchAllStations(db, SOURCE);
+  const stationIdByExt = new Map(stations.map((s) => [s.external_id, s.id]));
 
   console.log('Writing line_stations…');
   for (const seq of sequences) {
@@ -155,6 +154,24 @@ async function run() {
   }
 
   console.log('Done.');
+}
+
+
+/** PostgREST caps responses at 1000 rows; page through everything. */
+async function fetchAllStations(db: SupabaseClient, source: string) {
+  const out: { id: string; external_id: string; network: string }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db
+      .from('stations')
+      .select('id, external_id, network')
+      .eq('external_source', source)
+      .order('external_id')
+      .range(from, from + 999);
+    if (error) throw error;
+    out.push(...(data as typeof out));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
 }
 
 run().catch((e) => {
