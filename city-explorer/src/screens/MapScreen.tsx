@@ -73,15 +73,20 @@ export default function MapScreen() {
     let best: { station: Station; distanceM: number } | null = null;
     let bestRail: { station: Station; distanceM: number } | null = null;
     let bestNew: { station: Station; distanceM: number } | null = null;
+    let bestNewRail: { station: Station; distanceM: number } | null = null;
     for (const s of shownStations) {
       const d = haversine([fix.lon, fix.lat], [s.lon, s.lat]);
       if (!best || d < best.distanceM) best = { station: s, distanceM: d };
       if (s.network === 'rail' && (!bestRail || d < bestRail.distanceM)) bestRail = { station: s, distanceM: d };
-      if (!visitMap.has(s.id) && (!bestNew || d < bestNew.distanceM)) bestNew = { station: s, distanceM: d };
+      if (!visitMap.has(s.id)) {
+        if (!bestNew || d < bestNew.distanceM) bestNew = { station: s, distanceM: d };
+        if (s.network === 'rail' && (!bestNewRail || d < bestNewRail.distanceM)) bestNewRail = { station: s, distanceM: d };
+      }
     }
-    // A rail station in range always wins over a nearer bus stop: it is the main game.
+    // Rail is the main game: a rail station in range wins the check-in bar over a
+    // nearer bus stop, and the "next" nudge points at rail whenever any is left.
     const preferred = bestRail && bestRail.distanceM <= unlockRadiusM(fix.accuracyM) ? bestRail : best;
-    return { nearest: preferred, nextUnvisited: bestNew };
+    return { nearest: preferred, nextUnvisited: bestNewRail ?? bestNew };
   }, [fix, shownStations, visitMap]);
 
   const flown = useRef(false);
@@ -154,7 +159,7 @@ export default function MapScreen() {
 
       {error && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{String(error)}</Text>
+          <Text style={styles.errorText}>{error instanceof Error ? error.message : (error as { message?: string }).message ?? 'Something went wrong.'}</Text>
         </View>
       )}
 

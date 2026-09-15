@@ -1,16 +1,29 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapboxGL from '@rnmapbox/maps';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { fetchMyProfile } from '../src/api/profile';
 import { SessionProvider, useSession } from '../src/auth/SessionProvider';
+import { supabase } from '../src/lib/supabase';
 import { WELCOME_SEEN_KEY } from './welcome';
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_TOKEN!);
 
-const queryClient = new QueryClient();
+/** A stored session the server no longer accepts (e.g. from another project) must not wedge the app. */
+function isAuthRejection(e: unknown): boolean {
+  const err = e as { code?: string; message?: string; status?: number } | null;
+  return !!err && (err.code === 'PGRST301' || err.status === 401 || /jwt|token/i.test(err.message ?? ''));
+}
+
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (isAuthRejection(error)) supabase.auth.signOut().catch(() => {});
+    },
+  }),
+});
 
 export default function RootLayout() {
   return (
