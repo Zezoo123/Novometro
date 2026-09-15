@@ -21,7 +21,7 @@ export default function LineDetailScreen() {
     queryFn: () => fetchLineDetail(id!),
     enabled: !!id && !!userId,
   });
-  const allStations = useQuery({ queryKey: ['stations', 'london'], queryFn: () => fetchStations() });
+  const allStations = useQuery({ queryKey: ['stations', 'london', 'rail'], queryFn: () => fetchStations('rail'), staleTime: 3_600_000 });
   const { fix } = useLocation();
 
   // Show each station once, in the order of its first appearance across branches.

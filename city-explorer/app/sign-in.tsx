@@ -38,22 +38,7 @@ export default function SignInScreen() {
     appleSignInAvailable().then(setAppleAvailable);
   }, []);
 
-  // Google is optional: the hook is inert until client ids are configured.
-  const [, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-  });
   const googleConfigured = !!GOOGLE_IOS_CLIENT_ID;
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success' && googleResponse.params.id_token) {
-      setBusy(true);
-      signInWithGoogleIdToken(googleResponse.params.id_token).catch((e) => {
-        setError(e instanceof Error ? e.message : 'Google sign-in failed.');
-        setBusy(false);
-      });
-    }
-  }, [googleResponse]);
 
   const apple = async () => {
     setBusy(true);
@@ -111,11 +96,7 @@ export default function SignInScreen() {
                 onPress={apple}
               />
             )}
-            {googleConfigured && (
-              <Pressable style={styles.googleButton} onPress={() => promptGoogle()} disabled={busy} testID="google-sign-in">
-                <Text style={styles.googleText}>Continue with Google</Text>
-              </Pressable>
-            )}
+            {googleConfigured && <GoogleButton busy={busy} setBusy={setBusy} setError={setError} />}
             <Text style={styles.or}>or use your email</Text>
           </View>
         )}
@@ -178,6 +159,41 @@ export default function SignInScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+/**
+ * Lives in its own component because the Google hook throws at mount when no
+ * client id is configured; this only renders once one is.
+ */
+function GoogleButton({
+  busy,
+  setBusy,
+  setError,
+}: {
+  busy: boolean;
+  setBusy: (b: boolean) => void;
+  setError: (e: string | null) => void;
+}) {
+  const [, response, prompt] = Google.useIdTokenAuthRequest({
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success' && response.params.id_token) {
+      setBusy(true);
+      signInWithGoogleIdToken(response.params.id_token).catch((e) => {
+        setError(e instanceof Error ? e.message : 'Google sign-in failed.');
+        setBusy(false);
+      });
+    }
+  }, [response, setBusy, setError]);
+
+  return (
+    <Pressable style={styles.googleButton} onPress={() => prompt()} disabled={busy} testID="google-sign-in">
+      <Text style={styles.googleText}>Continue with Google</Text>
+    </Pressable>
   );
 }
 

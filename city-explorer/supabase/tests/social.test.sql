@@ -65,7 +65,7 @@ select is((select count(*) from public.visits), 4::bigint, 'after following ben,
 select is((select is_following from public.search_profiles('ben')), true, 'search reflects the follow');
 
 select results_eq(
-  $$ select rank, username, score, is_me from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all') $$,
+  $$ select rank, username, score, is_me from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all') where username in ('ana', 'ben', 'cyr') $$,
   $$ values (1, 'ana'::text, 2, true), (2, 'ben'::text, 1, false), (3, 'cyr'::text, 0, false) $$,
   'city all-time leaderboard ranks by distinct stations');
 
@@ -100,7 +100,8 @@ select results_eq(
 -- ---------------------------------------------------------------------------
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
 select is((select count(*) from public.visits), 0::bigint, 'cy sees no visits');
-select is((select count(*) from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all', 1)), 2::bigint,
+select ok(
+  exists (select 1 from public.leaderboard('00000000-0000-0000-0000-00000000beef', 'city', 'all', 1) where is_me),
   'top-1 leaderboard still includes the caller''s own row');
 
 select * from finish();

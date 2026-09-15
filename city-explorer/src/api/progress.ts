@@ -1,5 +1,15 @@
 import { supabase } from '../lib/supabase';
 
+type LineProgressRow = {
+  line_id: string | null;
+  name: string | null;
+  mode: string | null;
+  network: string | null;
+  colour: string | null;
+  total_stations: number | null;
+  visited_stations: number | null;
+};
+
 export type LineProgress = {
   line_id: string;
   name: string;
@@ -12,14 +22,21 @@ export type LineProgress = {
 
 /** Progress of the signed-in user on every line, most complete first. */
 export async function fetchMyLineProgress(): Promise<LineProgress[]> {
-  const { data, error } = await supabase
-    .from('my_line_progress')
-    .select('line_id,name,mode,network,colour,total_stations,visited_stations');
-  if (error) throw error;
-  return (data ?? [])
+  const data: LineProgressRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error } = await supabase
+      .from('my_line_progress')
+      .select('line_id,name,mode,network,colour,total_stations,visited_stations')
+      .order('line_id')
+      .range(from, from + 999);
+    if (error) throw error;
+    data.push(...(page ?? []));
+    if (!page || page.length < 1000) break;
+  }
+  return data
     .filter(
       (r): r is LineProgress =>
-        r.line_id != null && r.name != null && r.mode != null && r.total_stations != null && r.visited_stations != null,
+        r.line_id != null && r.name != null && r.mode != null && r.network != null && r.total_stations != null && r.visited_stations != null,
     )
     .sort((a, b) => {
       // Rail first; within a network most complete first; untouched bus routes sink to the bottom.
