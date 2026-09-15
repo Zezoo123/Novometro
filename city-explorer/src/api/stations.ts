@@ -45,3 +45,13 @@ export async function fetchNearestStations(lat: number, lon: number, limit = 5):
   if (error) throw error;
   return data;
 }
+
+/** Every line/station pairing in a city, for "which lines serve this station". */
+export async function fetchAllLineStations(cityId = LONDON_CITY_ID): Promise<LineStation[]> {
+  const { data, error } = await supabase
+    .from('line_stations')
+    .select('line_id,station_id,branch,sequence,lines!inner(city_id)')
+    .eq('lines.city_id', cityId);
+  if (error) throw error;
+  return data.map(({ line_id, station_id, branch, sequence }) => ({ line_id, station_id, branch, sequence }));
+}
